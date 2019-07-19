@@ -7,6 +7,20 @@ import (
 	"gorgonia.org/tensor"
 )
 
+// WithWB is a FC specific construction option used to initialize a FC.
+func WithWB(w, b *G.Node) ConsOpt {
+	return func(layer Layer) (Layer, error) {
+		fc, ok := layer.(*FC)
+		if !ok {
+			return layer, errors.Errorf("Expected a *FC. Got %v of %T instead", layer, layer)
+		}
+		fc.w = w
+		fc.b = b
+		fc.initialized = true
+		return layer, nil
+	}
+}
+
 // FC represents a fully connected layer
 //
 // If batched is set to true, then the first dimension is assumed to be the batch dimension
@@ -45,6 +59,7 @@ func NewFC(opts ...ConsOpt) *FC {
 		}
 		retVal = l.(*FC)
 	}
+	retVal.initialized = true
 	return retVal
 }
 
@@ -67,7 +82,7 @@ func (l *FC) Fwd(x *G.Node) (*G.Node, error) {
 		goto act
 	}
 
-	if l.batched {
+	if l.batched && !(l.b.Shape().Eq(xw.Shape())) {
 		if xwb, err = G.BroadcastAdd(xw, l.b, nil, []byte{0}); err != nil {
 			return nil, err
 		}

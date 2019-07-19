@@ -37,6 +37,16 @@ type Layer interface {
 	Describe() // some protobuf things TODO
 }
 
+// Init initializes a layer with the given construction options. This is useful for re-initializing layers
+func Init(l Layer, opts ...ConsOpt) (retVal Layer, err error) {
+	for _, opt := range opts {
+		if l, err := opt(l); err != nil {
+			return l, err
+		}
+	}
+	return l, nil
+}
+
 func Apply(a, b Term) (Term, error) {
 	panic("STUBBED")
 }
@@ -55,6 +65,7 @@ type Composition struct {
 	retShape tensor.Shape
 }
 
+// Compose creates a composition of terms.
 func Compose(a, b Term) (retVal *Composition, err error) {
 	return &Composition{
 		a: a,
