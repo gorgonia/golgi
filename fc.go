@@ -138,6 +138,7 @@ func ConsFC(x *G.Node, opts ...ConsOpt) (retVal Layer, err error) {
 	case !l.batched && !l.nobias:
 		l.b = G.NewMatrix(g, of, G.WithShape(xshp[0], xshp[1]), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
 	}
+	l.initialized = true
 
 	return l, nil
 }

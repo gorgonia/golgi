@@ -20,6 +20,7 @@ func Example() {
 		L(ConsFC, WithSize(50), WithName("l0"), AsBatched(true), WithActivation(gorgonia.Tanh), WithBias(true)),
 		L(ConsDropout, WithProbability(0.5)),
 		L(ConsFC, WithSize(150), WithName("l1"), AsBatched(true), WithActivation(gorgonia.Rectify)), // by default WithBias is true
+		L(ConsLayerNorm, WithSize(20), WithName("Norm"), WithEps(0.001)),
 		L(ConsFC, WithSize(10), WithName("l2"), AsBatched(true), WithActivation(gorgonia.SoftMax), WithBias(false)),
 	)
 	if err != nil {
@@ -42,5 +43,5 @@ func Example() {
 
 	fmt.Printf("Model: %v\n", model)
 	// Output:
-	// Model: [l0_W, l0_B, l1_W, l1_B, l2_W]
+	// Model: [l0_W, l0_B, l1_W, l1_B, Norm_W, Norm_B, l2_W]
 }

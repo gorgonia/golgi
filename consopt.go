@@ -22,6 +22,9 @@ func WithName(name string) ConsOpt {
 		case *FC:
 			l.name = name
 			return layer, nil
+		case *layerNorm:
+			l.name = name
+			return layer, nil
 		case *LSTM:
 		case *Conv:
 		case unnameable:
@@ -30,7 +33,7 @@ func WithName(name string) ConsOpt {
 			err := l.SetName(name)
 			return layer, err
 		}
-		return nil, errors.Errorf("Unhandled Layer type: %T", layer)
+		return nil, errors.Errorf("WithName Unhandled Layer type: %T", layer)
 	}
 }
 
@@ -47,7 +50,7 @@ func AsBatched(batched bool) ConsOpt {
 		case reshape:
 			return layer, nil
 		}
-		return nil, errors.Errorf("Unhandled Layer type: %T", layer)
+		return nil, errors.Errorf("AsBatched Unhandled Layer type: %T", layer)
 	}
 }
 
@@ -71,8 +74,11 @@ func WithSize(size ...int) ConsOpt {
 		case *FC:
 			l.size = size[0]
 			return l, nil
+		case *layerNorm:
+			l.FC.size = size[0]
+			return l, nil
 		}
-		return nil, errors.Errorf("Unhandled Layer type: %T", layer)
+		return nil, errors.Errorf("WithSize Unhandled Layer type: %T", layer)
 	}
 }
 
@@ -86,7 +92,7 @@ func WithActivation(act func(*G.Node) (*G.Node, error)) ConsOpt {
 		case reshape:
 			return layer, nil
 		}
-		return nil, errors.Errorf("Unhandled Layer type: %T", layer)
+		return nil, errors.Errorf("WithActivation Unhandled Layer type: %T", layer)
 	}
 }
 
@@ -96,7 +102,7 @@ func ToShape(shp ...int) ConsOpt {
 		if _, ok := layer.(reshape); ok {
 			return reshape(tensor.Shape(shp)), nil
 		}
-		return nil, errors.Errorf("Unhandled Layer type: %T", layer)
+		return nil, errors.Errorf("ToShape Unhandled Layer type: %T", layer)
 	}
 }
 
@@ -106,6 +112,17 @@ func WithProbability(prob float64) ConsOpt {
 		if _, ok := layer.(dropout); ok {
 			return dropout(prob), nil
 		}
-		return nil, errors.Errorf("Unhandled Layer type: %T", layer)
+		return nil, errors.Errorf("WithProbability Unhandled Layer type: %T", layer)
+	}
+}
+
+// WithEps is a ConsOpt for constructing Layer Norms only.
+func WithEps(eps float64) ConsOpt{
+	return func(layer Layer) (Layer, error) {
+		if l, ok := layer.(*layerNorm); ok {
+			l.eps = eps
+			return l, nil
+		}
+		return nil, errors.Errorf("WithEps Unhandled Layer type: %T", layer)
 	}
 }
