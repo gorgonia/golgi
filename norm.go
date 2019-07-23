@@ -19,40 +19,44 @@ type layerNorm struct {
 // There is no Type() method
 // There is no Shape() method
 
-func (l *layerNorm) Fwd(x *G.Node) (*G.Node, error) {
+func (l *layerNorm) Fwd(a Input) Result {
+	if err := CheckOne(a); err != nil {
+		return Err{errors.Wrap(err, "Fwd of layer norm failed.")}
+	}
+	x := a.Node()
 	xshp := x.Shape()
 	last := xshp.Dims() - 1
 
 	var err error
-	var μ, xmμ, σ2, sd,  newX *G.Node
+	var μ, xmμ, σ2, sd, newX *G.Node
 	if μ, err = G.KeepDims(x, false, func(x *G.Node) (*G.Node, error) { return G.Mean(x, last) }); err != nil {
-		return nil, errors.Wrapf(err, "Unable to find mean of %dth dimension of %v", last, x)
+		return Err{errors.Wrapf(err, "Unable to find mean of %dth dimension of %v", last, x)}
 	}
 
 	// xmu: x-μ
 	if xmμ, err = G.BroadcastSub(x, μ, nil, []byte{byte(last)}); err != nil {
-		return nil, errors.Wrapf(err, "Unable to perform (x-μ). Shapes - x: %v,  μ: %v. Broadcast on right axis: %v", x.Shape(), μ.Shape(), last)
+		return Err{errors.Wrapf(err, "Unable to perform (x-μ). Shapes - x: %v,  μ: %v. Broadcast on right axis: %v", x.Shape(), μ.Shape(), last)}
 	}
 
 	// σ2: ((x-μ)^2)/N
 	if σ2, err = G.Square(xmμ); err != nil {
-		return nil, errors.Wrap(err, "Unable to perform (x-μ)^2")
+		return Err{errors.Wrap(err, "Unable to perform (x-μ)^2")}
 	}
 	if σ2, err = G.KeepDims(σ2, false, func(x *G.Node) (*G.Node, error) { return G.Mean(x, last) }); err != nil {
-		return nil, errors.Wrap(err, "Unable to calculate Mean Squared Variance")
+		return Err{errors.Wrap(err, "Unable to calculate Mean Squared Variance")}
 	}
 
 	// purturb the variance before sqrting it
 	if sd, err = G.Add(σ2, l.epsNode); err != nil {
-		return nil, errors.Wrap(err, "Unable to purturb the variance")
+		return Err{errors.Wrap(err, "Unable to purturb the variance")}
 	}
 	if sd, err = G.Sqrt(sd); err != nil {
-		return nil, errors.Wrap(err, "Unable to sqrt the variance")
+		return Err{errors.Wrap(err, "Unable to sqrt the variance")}
 	}
 
 	// now we have a new x
 	if newX, err = G.BroadcastHadamardDiv(xmμ, sd, nil, []byte{byte(last)}); err != nil {
-		return nil, errors.Wrapf(err, "Unable to do (x-μ)/σ. Shapes - xmμ: %v, sd: %v. Broadcast on right axis: %v", xmμ.Shape(), sd.Shape(), last)
+		return Err{errors.Wrapf(err, "Unable to do (x-μ)/σ. Shapes - xmμ: %v, sd: %v. Broadcast on right axis: %v", xmμ.Shape(), sd.Shape(), last)}
 	}
 
 	// the rest is straightforwards FC

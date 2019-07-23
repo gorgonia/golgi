@@ -12,7 +12,7 @@ func (l *LSTM) Model() G.Nodes {
 	panic("not implemented")
 }
 
-func (l *LSTM) Fwd(x *G.Node) (*G.Node, error) {
+func (l *LSTM) Fwd(x Input) (Result) {
 	panic("not implemented")
 }
 

@@ -24,6 +24,6 @@ var internalmaps = map[activation]func(*G.Node) (*G.Node, error){
 	relu:      G.Rectify,
 	leakyRelu: nil, // TODO
 	elu:       nil, //TODO
-	softmax:   G.SoftMax,
+	// softmax:   G.SoftMax, // TODO
 	cube:      G.Cube,
 }

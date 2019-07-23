@@ -5,8 +5,15 @@ import (
 	G "gorgonia.org/gorgonia"
 )
 
-func RMS(yHat, y *G.Node) (retVal *G.Node, err error) {
-	if retVal, err = G.Sub(yHat, y); err != nil {
+func RMS(yHat, y Input) (retVal *G.Node, err error) {
+	if err = CheckOne(yHat); err != nil {
+		return nil, errors.Wrap(err, "unable to extract node from yHat")
+	}
+	if err = CheckOne(y); err != nil {
+		return nil, errors.Wrap(err, "unable to extract node from y")
+	}
+
+	if retVal, err = G.Sub(yHat.Node(), y.Node()); err != nil {
 		return nil, errors.Wrap(err, "(ŷ-y)")
 	}
 	if retVal, err = G.Square(retVal); err != nil {

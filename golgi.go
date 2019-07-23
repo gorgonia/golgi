@@ -1,6 +1,8 @@
 package golgi
 
 import (
+	"fmt"
+
 	"github.com/chewxy/hm"
 	"github.com/pkg/errors"
 	G "gorgonia.org/gorgonia"
@@ -11,6 +13,24 @@ type Term interface {
 	Type() hm.Type
 }
 
+// Result is either a Node or Nodes or error
+type Result interface {
+	Node() *G.Node
+	Nodes() G.Nodes
+	Err() error
+}
+
+// Input is either a Node or Nodes
+type Input interface {
+	Node() *G.Node
+	Nodes() G.Nodes
+}
+
+// Errer is anything that can create an error
+type Errer interface {
+	Err() error
+}
+
 // Layer represents a neural network layer.
 // λ
 type Layer interface {
@@ -19,7 +39,7 @@ type Layer interface {
 
 	// Fwd represents the forward application of inputs
 	// x.t
-	Fwd(x *G.Node) (*G.Node, error)
+	Fwd(x Input) Result
 
 	// meta stuff. This stuff is just placholder for more advanced things coming
 
@@ -37,8 +57,8 @@ type Layer interface {
 	Describe() // some protobuf things TODO
 }
 
-// Init initializes a layer with the given construction options. This is useful for re-initializing layers
-func Init(l Layer, opts ...ConsOpt) (retVal Layer, err error) {
+// Redefine redefines a layer with the given construction options. This is useful for re-initializing layers
+func Redefine(l Layer, opts ...ConsOpt) (retVal Layer, err error) {
 	for _, opt := range opts {
 		if l, err := opt(l); err != nil {
 			return l, err
@@ -95,12 +115,18 @@ func ComposeSeq(layers ...Term) (retVal *Composition, err error) {
 	return l.(*Composition), nil
 }
 
-func (l *Composition) Fwd(input *G.Node) (output *G.Node, err error) {
-	if l.retVal != nil {
-		return l.retVal, nil
+func (l *Composition) Fwd(a Input) (output Result) {
+	if err := CheckOne(a); err != nil {
+		return Err{errors.Wrapf(err, "Forward of a Composition %v", l.Name())}
 	}
-	var x *G.Node
+
+	if l.retVal != nil {
+		return l.retVal
+	}
+	input := a.Node()
+	var x Input
 	var layer Layer
+	var err error
 	switch at := l.a.(type) {
 	case *G.Node:
 		x = at
@@ -109,30 +135,30 @@ func (l *Composition) Fwd(input *G.Node) (output *G.Node, err error) {
 			goto next
 		}
 		l.a = layer
-		x, err = layer.Fwd(input)
+		x = layer.Fwd(input)
 	case Layer:
-		x, err = at.Fwd(input)
+		x = at.Fwd(input)
 	default:
-		return nil, errors.Errorf("Fwd of Composition not handled for a of %T", l.a)
+		return Err{errors.Errorf("Fwd of Composition not handled for a of %T", l.a)}
 	}
 next:
 	if err != nil {
-		return nil, errors.Wrapf(err, "Happened while doing a of Composition %v", l)
+		return Err{errors.Wrapf(err, "Happened while doing a of Composition %v", l)}
 	}
 
 	switch bt := l.b.(type) {
 	case *G.Node:
-		return nil, errors.New("Cannot Fwd when b is a *Node")
+		return Err{errors.New("Cannot Fwd when b is a *Node")}
 	case consThunk:
-		if layer, err = bt.LayerCons(x, bt.Opts...); err != nil {
-			return nil, errors.Wrapf(err, "Happened while doing b of Composition %v", l)
+		if layer, err = bt.LayerCons(x.Node(), bt.Opts...); err != nil {
+			return Err{errors.Wrapf(err, "Happened while doing b of Composition %v", l)}
 		}
 		l.b = layer
-		output, err = layer.Fwd(x)
+		output = layer.Fwd(x)
 	case Layer:
-		output, err = bt.Fwd(x)
+		output = bt.Fwd(x)
 	default:
-		return nil, errors.Errorf("Fwd of Composition not handled for b of %T", l.b)
+		return Err{errors.Errorf("Fwd of Composition not handled for b of %T", l.b)}
 	}
 	return
 }
@@ -148,6 +174,6 @@ func (l *Composition) Type() hm.Type { return l.retType }
 
 func (l *Composition) Shape() tensor.Shape { return l.retShape }
 
-func (l *Composition) Name() string { panic("STUB") }
+func (l *Composition) Name() string { return fmt.Sprintf("%v ∘ %v", l.b, l.a) }
 
 func (l *Composition) Describe() { panic("STUB") }

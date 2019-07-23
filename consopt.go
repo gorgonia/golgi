@@ -13,6 +13,15 @@ type namesetter interface {
 	SetName(a string) error
 }
 
+type sizeSetter interface {
+	SetSize(int) error
+}
+
+type actSetter interface {
+	SetActivationFn(act func(*G.Node)(*G.Node, error)) error
+}
+
+
 // WithName creates a layer that is named.
 //
 // If the layer is unnameable (i.e. trivial layers), then there is no effect.
@@ -74,9 +83,9 @@ func WithSize(size ...int) ConsOpt {
 		case *FC:
 			l.size = size[0]
 			return l, nil
-		case *layerNorm:
-			l.FC.size = size[0]
-			return l, nil
+		case sizeSetter:
+			l.SetSize(size[0])
+			return layer, nil
 		}
 		return nil, errors.Errorf("WithSize Unhandled Layer type: %T", layer)
 	}
@@ -90,6 +99,9 @@ func WithActivation(act func(*G.Node) (*G.Node, error)) ConsOpt {
 			l.act = act
 			return layer, nil
 		case reshape:
+			return layer, nil
+		case actSetter:
+			l.SetActivationFn(act)
 			return layer, nil
 		}
 		return nil, errors.Errorf("WithActivation Unhandled Layer type: %T", layer)

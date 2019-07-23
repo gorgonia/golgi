@@ -8,6 +8,8 @@ import (
 	"gorgonia.org/tensor"
 )
 
+func softmax(a *gorgonia.Node) (*gorgonia.Node, error) { return gorgonia.SoftMax(a) }
+
 func Example() {
 	n := 100
 	of := tensor.Float64
@@ -21,13 +23,13 @@ func Example() {
 		L(ConsDropout, WithProbability(0.5)),
 		L(ConsFC, WithSize(150), WithName("l1"), AsBatched(true), WithActivation(gorgonia.Rectify)), // by default WithBias is true
 		L(ConsLayerNorm, WithSize(20), WithName("Norm"), WithEps(0.001)),
-		L(ConsFC, WithSize(10), WithName("l2"), AsBatched(true), WithActivation(gorgonia.SoftMax), WithBias(false)),
+		L(ConsFC, WithSize(10), WithName("l2"), AsBatched(true), WithActivation(softmax), WithBias(false)),
 	)
 	if err != nil {
 		panic(err)
 	}
-	out, err := nn.Fwd(x)
-	if err != nil {
+	out := nn.Fwd(x)
+	if err = CheckOne(out); err != nil {
 		panic(err)
 	}
 

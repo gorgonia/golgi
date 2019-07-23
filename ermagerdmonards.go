@@ -20,31 +20,23 @@ func (m *maebe) do(f func() (*G.Node, error)) (retVal *G.Node) {
 	return
 }
 
-type aritier interface {
-	arity() int
+type Err struct{ E error }
+
+func (err Err) Node() *G.Node  { return nil }
+func (err Err) Nodes() G.Nodes { return nil }
+func (err Err) Err() error     { return err.E }
+
+func lift(a *G.Node, err error) Result {
+	if err != nil {
+		return Err{err}
+	}
+	return a
 }
 
-type l1 func(a *G.Node) (*G.Node, error)
-type l2 func(a, b *G.Node) (*G.Node, error)
-
-func (l1) arity() int { return 1 }
-func (l2) arity() int { return 2 }
-
-func lift(f aritier, inputs ...*G.Node) func() (*G.Node, error) {
-	return func() (*G.Node, error) {
-		ar := f.arity()
-		if len(inputs) != ar {
-			return nil, errors.Errorf("Expected %d inputs. Got %d instead", ar, len(inputs))
-		}
-		switch ar {
-		case 1:
-			fn := f.(l1)
-			return fn(inputs[0])
-		case 2:
-			fn := f.(l2)
-			return fn(inputs[0], inputs[1])
-		default:
-			return nil, errors.New("Unhandled arity")
-		}
+// CheckOne checks whether an input is an error
+func CheckOne(in Input) error {
+	if errer, ok := in.(Errer); ok && errer.Err() != nil {
+		return errer.Err()
 	}
+	return nil
 }
