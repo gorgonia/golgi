@@ -29,7 +29,7 @@ func Example() {
 		panic(err)
 	}
 	out := nn.Fwd(x)
-	if err = CheckOne(out); err != nil {
+	if err = gorgonia.CheckOne(out); err != nil {
 		panic(err)
 	}
 

@@ -6,10 +6,10 @@ import (
 )
 
 func RMS(yHat, y Input) (retVal *G.Node, err error) {
-	if err = CheckOne(yHat); err != nil {
+	if err = G.CheckOne(yHat); err != nil {
 		return nil, errors.Wrap(err, "unable to extract node from yHat")
 	}
-	if err = CheckOne(y); err != nil {
+	if err = G.CheckOne(y); err != nil {
 		return nil, errors.Wrap(err, "unable to extract node from y")
 	}
 

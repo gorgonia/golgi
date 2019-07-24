@@ -70,16 +70,16 @@ func (l *FC) Model() G.Nodes {
 	return G.Nodes{l.w, l.b}
 }
 
-func (l *FC) Fwd(a Input) Result {
-	if err := CheckOne(a); err != nil {
-		return Err{errors.Wrapf(err, "Fwd of FC %v", l.name)}
+func (l *FC) Fwd(a Input) G.Result {
+	if err := G.CheckOne(a); err != nil {
+		return G.Err{errors.Wrapf(err, "Fwd of FC %v", l.name)}
 	}
 
 	x := a.Node()
 	var xw, xwb *G.Node
 	var err error
 	if xw, err = G.Mul(x, l.w); err != nil {
-		return Err{err}
+		return G.Err{err}
 	}
 
 	if l.b == nil {
@@ -89,18 +89,18 @@ func (l *FC) Fwd(a Input) Result {
 
 	if l.batched && !(l.b.Shape().Eq(xw.Shape())) {
 		if xwb, err = G.BroadcastAdd(xw, l.b, nil, []byte{0}); err != nil {
-			return Err{err}
+			return G.Err{err}
 		}
 	} else {
 		if xwb, err = G.Add(xw, l.b); err != nil {
-			return Err{err}
+			return G.Err{err}
 		}
 	}
 act:
 	if l.act == nil {
 		return xwb
 	}
-	return lift(l.act(xwb))
+	return G.LiftResult(l.act(xwb))
 }
 
 func (l *FC) Type() hm.Type       { return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('b')) }
@@ -114,9 +114,9 @@ func (l *FC) SetName(a string) error { l.name = a; return nil }
 
 func (l *FC) SetSize(a int) error { l.size = a; return nil }
 
-func (l *FC) SetAct(act func(*G.Node)(*G.Node, error))error{l.act = act; return nil}
+func (l *FC) SetAct(act func(*G.Node) (*G.Node, error)) error { l.act = act; return nil }
 
-func (l *FC) Init(xs ...*G.Node) (err error){
+func (l *FC) Init(xs ...*G.Node) (err error) {
 	x := xs[0]
 	g := x.Graph()
 	of := x.Dtype()

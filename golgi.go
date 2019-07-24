@@ -13,13 +13,6 @@ type Term interface {
 	Type() hm.Type
 }
 
-// Result is either a Node or Nodes or error
-type Result interface {
-	Node() *G.Node
-	Nodes() G.Nodes
-	Err() error
-}
-
 // Input is either a Node or Nodes
 type Input interface {
 	Node() *G.Node
@@ -39,7 +32,7 @@ type Layer interface {
 
 	// Fwd represents the forward application of inputs
 	// x.t
-	Fwd(x Input) Result
+	Fwd(x Input) G.Result
 
 	// meta stuff. This stuff is just placholder for more advanced things coming
 
@@ -115,9 +108,9 @@ func ComposeSeq(layers ...Term) (retVal *Composition, err error) {
 	return l.(*Composition), nil
 }
 
-func (l *Composition) Fwd(a Input) (output Result) {
-	if err := CheckOne(a); err != nil {
-		return Err{errors.Wrapf(err, "Forward of a Composition %v", l.Name())}
+func (l *Composition) Fwd(a Input) (output G.Result) {
+	if err := G.CheckOne(a); err != nil {
+		return G.Err{errors.Wrapf(err, "Forward of a Composition %v", l.Name())}
 	}
 
 	if l.retVal != nil {
@@ -139,26 +132,26 @@ func (l *Composition) Fwd(a Input) (output Result) {
 	case Layer:
 		x = at.Fwd(input)
 	default:
-		return Err{errors.Errorf("Fwd of Composition not handled for a of %T", l.a)}
+		return G.Err{errors.Errorf("Fwd of Composition not handled for a of %T", l.a)}
 	}
 next:
 	if err != nil {
-		return Err{errors.Wrapf(err, "Happened while doing a of Composition %v", l)}
+		return G.Err{errors.Wrapf(err, "Happened while doing a of Composition %v", l)}
 	}
 
 	switch bt := l.b.(type) {
 	case *G.Node:
-		return Err{errors.New("Cannot Fwd when b is a *Node")}
+		return G.Err{errors.New("Cannot Fwd when b is a *Node")}
 	case consThunk:
 		if layer, err = bt.LayerCons(x.Node(), bt.Opts...); err != nil {
-			return Err{errors.Wrapf(err, "Happened while doing b of Composition %v", l)}
+			return G.Err{errors.Wrapf(err, "Happened while doing b of Composition %v", l)}
 		}
 		l.b = layer
 		output = layer.Fwd(x)
 	case Layer:
 		output = bt.Fwd(x)
 	default:
-		return Err{errors.Errorf("Fwd of Composition not handled for b of %T", l.b)}
+		return G.Err{errors.Errorf("Fwd of Composition not handled for b of %T", l.b)}
 	}
 	return
 }
