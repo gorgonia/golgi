@@ -8,6 +8,10 @@ import (
 	"gorgonia.org/tensor"
 )
 
+var (
+	_ Layer = (*layerNorm)(nil)
+)
+
 // layerNorm performs layer normalization as per https://arxiv.org/abs/1607.06450
 type layerNorm struct {
 	FC
@@ -19,7 +23,7 @@ type layerNorm struct {
 // There is no Type() method
 // There is no Shape() method
 
-func (l *layerNorm) Fwd(a Input) G.Result {
+func (l *layerNorm) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
 		return G.Err{errors.Wrap(err, "Fwd of layer norm failed.")}
 	}

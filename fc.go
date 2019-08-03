@@ -70,7 +70,7 @@ func (l *FC) Model() G.Nodes {
 	return G.Nodes{l.w, l.b}
 }
 
-func (l *FC) Fwd(a Input) G.Result {
+func (l *FC) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
 		return G.Err{errors.Wrapf(err, "Fwd of FC %v", l.name)}
 	}

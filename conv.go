@@ -14,7 +14,7 @@ func (l *Conv) Model() G.Nodes {
 	panic("not implemented")
 }
 
-func (l *Conv) Fwd(x Input) G.Result {
+func (l *Conv) Fwd(x G.Input) G.Result {
 	panic("not implemented")
 }
 

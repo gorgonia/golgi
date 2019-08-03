@@ -18,9 +18,8 @@ type sizeSetter interface {
 }
 
 type actSetter interface {
-	SetActivationFn(act func(*G.Node)(*G.Node, error)) error
+	SetActivationFn(act func(*G.Node) (*G.Node, error)) error
 }
-
 
 // WithName creates a layer that is named.
 //
@@ -129,7 +128,7 @@ func WithProbability(prob float64) ConsOpt {
 }
 
 // WithEps is a ConsOpt for constructing Layer Norms only.
-func WithEps(eps float64) ConsOpt{
+func WithEps(eps float64) ConsOpt {
 	return func(layer Layer) (Layer, error) {
 		if l, ok := layer.(*layerNorm); ok {
 			l.eps = eps

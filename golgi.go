@@ -13,17 +13,6 @@ type Term interface {
 	Type() hm.Type
 }
 
-// Input is either a Node or Nodes
-type Input interface {
-	Node() *G.Node
-	Nodes() G.Nodes
-}
-
-// Errer is anything that can create an error
-type Errer interface {
-	Err() error
-}
-
 // Layer represents a neural network layer.
 // λ
 type Layer interface {
@@ -32,7 +21,7 @@ type Layer interface {
 
 	// Fwd represents the forward application of inputs
 	// x.t
-	Fwd(x Input) G.Result
+	Fwd(x G.Input) G.Result
 
 	// meta stuff. This stuff is just placholder for more advanced things coming
 
@@ -108,7 +97,7 @@ func ComposeSeq(layers ...Term) (retVal *Composition, err error) {
 	return l.(*Composition), nil
 }
 
-func (l *Composition) Fwd(a Input) (output G.Result) {
+func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	if err := G.CheckOne(a); err != nil {
 		return G.Err{errors.Wrapf(err, "Forward of a Composition %v", l.Name())}
 	}
@@ -117,7 +106,7 @@ func (l *Composition) Fwd(a Input) (output G.Result) {
 		return l.retVal
 	}
 	input := a.Node()
-	var x Input
+	var x G.Input
 	var layer Layer
 	var err error
 	switch at := l.a.(type) {

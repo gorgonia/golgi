@@ -5,7 +5,7 @@ import (
 	G "gorgonia.org/gorgonia"
 )
 
-func RMS(yHat, y Input) (retVal *G.Node, err error) {
+func RMS(yHat, y G.Input) (retVal *G.Node, err error) {
 	if err = G.CheckOne(yHat); err != nil {
 		return nil, errors.Wrap(err, "unable to extract node from yHat")
 	}
