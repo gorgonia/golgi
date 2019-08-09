@@ -13,6 +13,84 @@ type Term interface {
 	Type() hm.Type
 }
 
+// Name is a variable by name
+type Name string
+
+// Env is a linked list representing an environment.
+// Within the documentation, an environment is written as such:
+// 	e := (x ↦ X)
+// `x` is the name while `X` is the *gorgonia.Node
+//
+// A longer environment may look like this:
+//	e2 := (x ↦ X :: y ↦ Y)
+//	                ^
+// Here, e2 is pointing to the *Env that contains (y ↦ Y).
+//
+// When talking about Envs in general, it will often be written as a meta variable σ.
+type Env struct {
+	name string
+	node *G.Node
+	prev *Env
+}
+
+// NewEnv creates a new Env.
+func NewEnv(name string, node *G.Node) *Env {
+	return &Env{name: name, node: node}
+}
+
+// Extend allows users to extend the environment.
+//
+// Given an environment as follows:
+// 	e := (x ↦ X)
+// if `e.Extend(y, Y)` is called, the following is returned
+//	e2 := (x ↦ X :: y ↦ Y)
+//	                ^
+// The pointer will be pointing to the *Env starting at y
+func (e *Env) Extend(name string, node *G.Node) *Env {
+	return &Env{name: name, node: node, prev: e}
+}
+
+// ByName returns the first node that matches the given name. It also returns the parent
+//
+// For example, if we have an Env as follows:
+// 	e := (x ↦ X1 :: w ↦ W :: x ↦ X2)
+// 	                         ^
+//
+// The caret indicates the pointer of *Env. Now, if e.ByName("x") is called,
+// then the result returned will be X2 and (x ↦ X1 :: w ↦ W)
+func (e *Env) ByName(name string) (*G.Node, *Env) {
+	if e.name == name {
+		return e.node, e.prev
+	}
+	if e.prev != nil {
+		return e.prev.ByName(name)
+	}
+	return nil, nil
+}
+
+func (e *Env) Model() G.Nodes {
+	retVal := G.Nodes{e.node}
+	if e.prev != nil {
+		retVal = append(retVal, e.prev.Model())
+	}
+	return retVal
+}
+
+func (e *Env) HintedModel(hint int) G.Nodes {
+	prealloc := make(G.Nodes, 0, hint)
+	e.hinted(prealloc)
+	return prealloc
+}
+
+func (e *Env) hinted(prealloc G.Nodes) {
+	prealloc = append(prealloc, e.node)
+	if e.prev != nil {
+		e.next.hinted(prealloc)
+	}
+}
+
+type tag struct{ a, b Term }
+
 // Layer represents a neural network layer.
 // λ
 type Layer interface {
@@ -27,7 +105,6 @@ type Layer interface {
 
 	Term
 
-	// TODO
 	Shape() tensor.Shape
 
 	// Name gives the layer's name
