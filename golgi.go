@@ -9,12 +9,21 @@ import (
 	"gorgonia.org/tensor"
 )
 
+var (
+	_ Term = (Layer)(nil)
+	_ Term = Name("")
+	_ Term = (*Env)(nil)
+)
+
+// Term represents a term that can be used in Golgi
 type Term interface {
-	Type() hm.Type
+	Name() string
 }
 
 // Name is a variable by name
 type Name string
+
+func (n Name) Name() string { return string(n) }
 
 // Env is a linked list representing an environment.
 // Within the documentation, an environment is written as such:
@@ -71,7 +80,7 @@ func (e *Env) ByName(name string) (*G.Node, *Env) {
 func (e *Env) Model() G.Nodes {
 	retVal := G.Nodes{e.node}
 	if e.prev != nil {
-		retVal = append(retVal, e.prev.Model())
+		retVal = append(retVal, e.prev.Model()...)
 	}
 	return retVal
 }
@@ -85,8 +94,17 @@ func (e *Env) HintedModel(hint int) G.Nodes {
 func (e *Env) hinted(prealloc G.Nodes) {
 	prealloc = append(prealloc, e.node)
 	if e.prev != nil {
-		e.next.hinted(prealloc)
+		e.prev.hinted(prealloc)
 	}
+}
+
+func (e *Env) Name() string {
+	var name string
+	if e.prev != nil {
+		name = e.prev.Name() + " :: "
+	}
+	name += fmt.Sprintf("%v ↦ %v", e.name, e.node)
+	return name
 }
 
 type tag struct{ a, b Term }
@@ -105,10 +123,9 @@ type Layer interface {
 
 	Term
 
-	Shape() tensor.Shape
+	Type() hm.Type
 
-	// Name gives the layer's name
-	Name() string
+	Shape() tensor.Shape
 
 	// Serialization stuff
 

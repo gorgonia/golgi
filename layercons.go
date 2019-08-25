@@ -16,6 +16,7 @@ type consThunk struct {
 // L is a thunk of creation function
 func L(cons LayerCons, opts ...ConsOpt) consThunk { return consThunk{cons, opts} }
 
+func (t consThunk) Name() string { return "thunk" }
 func (t consThunk) Type() hm.Type {
 	return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('b'))
 }
