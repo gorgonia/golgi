@@ -1,10 +1,73 @@
 package golgi
 
 import (
+	"github.com/chewxy/hm"
 	"github.com/pkg/errors"
 	G "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
+
+// Metadata is not a real Layer. Its main aims is to extract metadata such as name or size from ConsOpts. This is useful in cases where the metadata needs to be composed as well.
+// Note that the fields may end up being all empty.
+type Metadata struct {
+	name         string
+	Size         int
+	shape        tensor.Shape
+	ActivationFn func(*G.Node) (*G.Node, error)
+}
+
+// Name returns the name. Conveniently, this makes *Metadata fulfil the Layer interface, so we may use it to extract the desired metadata.
+// Unfortunately this also means that the name is not an exported field. A little inconsistency there.
+func (m *Metadata) Name() string { return m.name }
+
+// SetName allows for names to be set by a ConsOpt
+func (m *Metadata) SetName(name string) error {
+	if m.name != "" {
+		return errors.Errorf("A name exists - %q ", m.name)
+	}
+	m.name = name
+	return nil
+}
+func (m *Metadata) Shape() tensor.Shape { return m.shape }
+
+func (m *Metadata) Describe()              {}
+func (m *Metadata) Model() G.Nodes         { return nil }
+func (m *Metadata) Fwd(x G.Input) G.Result { return G.Err{errors.New("Metadata is a dummy Layer")} }
+func (m *Metadata) Type() hm.Type          { return nil }
+
+// SetSize allows for the metadata struct to be filled by a ConsOpt
+func (m *Metadata) SetSize(size int) error {
+	if m.Size != 0 {
+		return errors.Errorf("A clashing size %d exists.", m.Size)
+	}
+	m.Size = size
+	return nil
+}
+
+// SetActivationFn allows the metadata to store activation function.
+func (m *Metadata) SetActivationFn(act func(*G.Node) (*G.Node, error)) error {
+	if m.ActivationFn != nil {
+		return errors.New("A clashing activation function already exists")
+	}
+	m.ActivationFn = act
+	return nil
+}
+
+// ExtractMetadata extracts common metadata from a list of ConsOpts.
+func ExtractMetadata(opts ...ConsOpt) (retVal Metadata, err error) {
+	var l Layer = &retVal
+	var m *Metadata = &retVal
+	var ok bool
+	for _, opt := range opts {
+		if l, err = opt(l); err != nil {
+			return Metadata{}, err
+		}
+		if m, ok = l.(*Metadata); !ok {
+			return Metadata{}, errors.Errorf("ConsOpt mutated metadata. Got %T instead", l)
+		}
+	}
+	return *m, nil
+}
 
 // ConsOpt is a construction option for layers
 type ConsOpt func(Layer) (Layer, error)
