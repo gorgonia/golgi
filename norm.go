@@ -25,7 +25,7 @@ type layerNorm struct {
 
 func (l *layerNorm) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
-		return G.Err{errors.Wrap(err, "Fwd of layer norm failed.")}
+		return G.Err(errors.Wrap(err, "Fwd of layer norm failed."))
 	}
 	x := a.Node()
 	xshp := x.Shape()
@@ -34,40 +34,42 @@ func (l *layerNorm) Fwd(a G.Input) G.Result {
 	var err error
 	var μ, xmμ, σ2, sd, newX *G.Node
 	if μ, err = G.KeepDims(x, false, func(x *G.Node) (*G.Node, error) { return G.Mean(x, last) }); err != nil {
-		return G.Err{errors.Wrapf(err, "Unable to find mean of %dth dimension of %v", last, x)}
+		return G.Err(errors.Wrapf(err, "Unable to find mean of %dth dimension of %v", last, x))
 	}
 
 	// xmu: x-μ
 	if xmμ, err = G.BroadcastSub(x, μ, nil, []byte{byte(last)}); err != nil {
-		return G.Err{errors.Wrapf(err, "Unable to perform (x-μ). Shapes - x: %v,  μ: %v. Broadcast on right axis: %v", x.Shape(), μ.Shape(), last)}
+		return G.Err(errors.Wrapf(err, "Unable to perform (x-μ). Shapes - x: %v,  μ: %v. Broadcast on right axis: %v", x.Shape(), μ.Shape(), last))
 	}
 
 	// σ2: ((x-μ)^2)/N
 	if σ2, err = G.Square(xmμ); err != nil {
-		return G.Err{errors.Wrap(err, "Unable to perform (x-μ)^2")}
+		return G.Err(errors.Wrap(err, "Unable to perform (x-μ)^2"))
 	}
 	if σ2, err = G.KeepDims(σ2, false, func(x *G.Node) (*G.Node, error) { return G.Mean(x, last) }); err != nil {
-		return G.Err{errors.Wrap(err, "Unable to calculate Mean Squared Variance")}
+		return G.Err(errors.Wrap(err, "Unable to calculate Mean Squared Variance"))
 	}
 
 	// purturb the variance before sqrting it
 	if sd, err = G.Add(σ2, l.epsNode); err != nil {
-		return G.Err{errors.Wrap(err, "Unable to purturb the variance")}
+		return G.Err(errors.Wrap(err, "Unable to purturb the variance"))
 	}
 	if sd, err = G.Sqrt(sd); err != nil {
-		return G.Err{errors.Wrap(err, "Unable to sqrt the variance")}
+		return G.Err(errors.Wrap(err, "Unable to sqrt the variance"))
 	}
 
 	// now we have a new x
 	if newX, err = G.BroadcastHadamardDiv(xmμ, sd, nil, []byte{byte(last)}); err != nil {
-		return G.Err{errors.Wrapf(err, "Unable to do (x-μ)/σ. Shapes - xmμ: %v, sd: %v. Broadcast on right axis: %v", xmμ.Shape(), sd.Shape(), last)}
+		return G.Err(errors.Wrapf(err, "Unable to do (x-μ)/σ. Shapes - xmμ: %v, sd: %v. Broadcast on right axis: %v", xmμ.Shape(), sd.Shape(), last))
 	}
 
 	// the rest is straightforwards FC
 	return l.FC.Fwd(newX)
 }
 
-func ConsLayerNorm(x *G.Node, opts ...ConsOpt) (retVal Layer, err error) {
+// ConsLayerNorm is a construction function for a layer normalization layer. `in` has to be at least a *gorgonia.Node
+func ConsLayerNorm(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
+	x := in.Node()
 	inshape := x.Shape()
 	if inshape.Dims() > 2 || inshape.Dims() == 0 {
 		return nil, errors.Errorf("Expected shape is either a vector or a matrix")

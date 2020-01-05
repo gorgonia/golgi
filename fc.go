@@ -7,6 +7,10 @@ import (
 	"gorgonia.org/tensor"
 )
 
+var (
+	_ ByNamer = &FC{}
+)
+
 // WithWB is a FC specific construction option used to initialize a FC.
 func WithWB(w, b *G.Node) ConsOpt {
 	return func(layer Layer) (Layer, error) {
@@ -72,14 +76,14 @@ func (l *FC) Model() G.Nodes {
 
 func (l *FC) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
-		return G.Err{errors.Wrapf(err, "Fwd of FC %v", l.name)}
+		return G.Err(errors.Wrapf(err, "Fwd of FC %v", l.name))
 	}
 
 	x := a.Node()
 	var xw, xwb *G.Node
 	var err error
 	if xw, err = G.Mul(x, l.w); err != nil {
-		return G.Err{err}
+		return G.Err(err)
 	}
 
 	if l.b == nil {
@@ -89,11 +93,11 @@ func (l *FC) Fwd(a G.Input) G.Result {
 
 	if l.batched && !(l.b.Shape().Eq(xw.Shape())) {
 		if xwb, err = G.BroadcastAdd(xw, l.b, nil, []byte{0}); err != nil {
-			return G.Err{err}
+			return G.Err(err)
 		}
 	} else {
 		if xwb, err = G.Add(xw, l.b); err != nil {
-			return G.Err{err}
+			return G.Err(err)
 		}
 	}
 act:
@@ -109,6 +113,19 @@ func (l *FC) Name() string        { return l.name }
 func (l *FC) Describe()           { panic("STUB") }
 
 // methods to support extensions
+
+func (l *FC) ByName(name string) Term {
+	if l.name == name {
+		return l
+	}
+	if l.w.Name() == name {
+		return l.w
+	}
+	if l.b != nil && l.b.Name() == name {
+		return l.b
+	}
+	return nil
+}
 
 func (l *FC) SetName(a string) error { l.name = a; return nil }
 
@@ -139,7 +156,13 @@ func (l *FC) Init(xs ...*G.Node) (err error) {
 	return nil
 }
 
-func ConsFC(x *G.Node, opts ...ConsOpt) (retVal Layer, err error) {
+// ConsFC is a FC construction function. It takes a gorgonia.Input that has a *gorgonia.Node.
+func ConsFC(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
+	x := in.Node()
+	if x == nil {
+		return nil, errors.Errorf("ConsFC expects a *Node. Got input %v of  %T instead", in, in)
+	}
+
 	inshape := x.Shape()
 	if inshape.Dims() > 2 || inshape.Dims() == 0 {
 		return nil, errors.Errorf("Expected shape is either a vector or a matrix")

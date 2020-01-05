@@ -26,23 +26,24 @@ type myLayer struct {
 
 func (l *myLayer) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
-		return G.Err{errors.Wrapf(err, "Fwd of myLayer %v", l.FC.Name())}
+		return G.Err(errors.Wrapf(err, "Fwd of myLayer %v", l.FC.Name()))
 	}
 	x := a.Node()
 	xShape := x.Shape()
 
 	switch xShape.Dims() {
 	case 0, 1:
-		return G.Err{errors.Errorf("Unable to handle x of %v", xShape)}
+		return G.Err(errors.Errorf("Unable to handle x of %v", xShape))
 	case 2:
 		return l.FC.Fwd(x)
 	case 3, 4:
-		return G.Err{errors.Errorf("NYI")}
+		return G.Err(errors.Errorf("NYI"))
+
 	}
 	panic("UNIMPLEMENTED")
 }
 
-func ConsMyLayer(x *G.Node, opts ...ConsOpt) (retVal Layer, err error) {
+func ConsMyLayer(x G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	l := new(myLayer)
 	for _, opt := range opts {
 		var o Layer
@@ -54,7 +55,7 @@ func ConsMyLayer(x *G.Node, opts ...ConsOpt) (retVal Layer, err error) {
 			return nil, errors.Errorf("Construction Option returned non *myLayer. Got %T instead", o)
 		}
 	}
-	if err = l.Init(x); err != nil {
+	if err = l.Init(x.(*G.Node)); err != nil {
 		return nil, err
 	}
 	return l, nil

@@ -55,7 +55,7 @@ func ComposeSeq(layers ...Term) (retVal *Composition, err error) {
 
 func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	if err := G.CheckOne(a); err != nil {
-		return G.Err{errors.Wrapf(err, "Forward of a Composition %v", l.Name())}
+		return G.Err(errors.Wrapf(err, "Forward of a Composition %v", l.Name()))
 	}
 
 	if l.retVal != nil {
@@ -77,26 +77,26 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	case Layer:
 		x = at.Fwd(input)
 	default:
-		return G.Err{errors.Errorf("Fwd of Composition not handled for a of %T", l.a)}
+		return G.Err(errors.Errorf("Fwd of Composition not handled for a of %T", l.a))
 	}
 next:
 	if err != nil {
-		return G.Err{errors.Wrapf(err, "Happened while doing `a` of Composition %v", l)}
+		return G.Err(errors.Wrapf(err, "Happened while doing `a` of Composition %v", l))
 	}
 
 	switch bt := l.b.(type) {
 	case *G.Node:
-		return G.Err{errors.New("Cannot Fwd when b is a *Node")}
+		return G.Err(errors.New("Cannot Fwd when b is a *Node"))
 	case consThunk:
 		if layer, err = bt.LayerCons(x.Node(), bt.Opts...); err != nil {
-			return G.Err{errors.Wrapf(err, "Happened while calling the thunk of `b` of Composition %v", l)}
+			return G.Err(errors.Wrapf(err, "Happened while calling the thunk of `b` of Composition %v", l))
 		}
 		l.b = layer
 		output = layer.Fwd(x)
 	case Layer:
 		output = bt.Fwd(x)
 	default:
-		return G.Err{errors.Errorf("Fwd of Composition not handled for `b` of %T", l.b)}
+		return G.Err(errors.Errorf("Fwd of Composition not handled for `b` of %T", l.b))
 	}
 	return
 }

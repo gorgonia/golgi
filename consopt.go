@@ -27,7 +27,7 @@ func (m *Metadata) Shape() tensor.Shape { return m.shape }
 
 func (m *Metadata) Describe()              {}
 func (m *Metadata) Model() G.Nodes         { return nil }
-func (m *Metadata) Fwd(x G.Input) G.Result { return G.Err{errors.New("Metadata is a dummy Layer")} }
+func (m *Metadata) Fwd(x G.Input) G.Result { return G.Err(errors.New("Metadata is a dummy Layer")) }
 func (m *Metadata) Type() hm.Type          { return nil }
 
 // SetName allows for names to be set by a ConsOpt

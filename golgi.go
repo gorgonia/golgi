@@ -7,6 +7,8 @@ import (
 )
 
 // ByNamer is any type that allows a name to be found and returned.
+//
+// If a name is not found, `nil` is to be returned
 type ByNamer interface {
 	ByName(name string) Term
 }

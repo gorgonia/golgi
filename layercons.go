@@ -6,7 +6,7 @@ import (
 )
 
 // LayerCons makes a layer
-type LayerCons func(input *G.Node, opts ...ConsOpt) (Layer, error)
+type LayerCons func(input G.Input, opts ...ConsOpt) (Layer, error)
 
 type consThunk struct {
 	LayerCons

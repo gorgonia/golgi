@@ -33,7 +33,8 @@ func (l k) unnamed()               {}
 
 type reshape tensor.Shape
 
-func ConsReshape(x *G.Node, opts ...ConsOpt) (l Layer, err error) {
+// ConsReshape is a construction function for a reshaping layer. It ignores the `x` input.
+func ConsReshape(_ G.Input, opts ...ConsOpt) (l Layer, err error) {
 	l = reshape(nil)
 	for _, opt := range opts {
 		if l, err = opt(l); err != nil {
@@ -46,7 +47,7 @@ func ConsReshape(x *G.Node, opts ...ConsOpt) (l Layer, err error) {
 func (l reshape) Model() G.Nodes { return nil }
 func (l reshape) Fwd(x G.Input) G.Result {
 	if err := G.CheckOne(x); err != nil {
-		return G.Err{err}
+		return G.Err(err)
 	}
 	return G.LiftResult(gorgonia.Reshape(x.Node(), tensor.Shape(l)))
 }
@@ -58,7 +59,8 @@ func (l reshape) unnamed()            {}
 
 type dropout float64
 
-func ConsDropout(x *G.Node, opts ...ConsOpt) (l Layer, err error) {
+// ConsDropout creates a dropout layer. It ignores the `x` input
+func ConsDropout(_ G.Input, opts ...ConsOpt) (l Layer, err error) {
 	l = dropout(0)
 	for _, opt := range opts {
 		if l, err = opt(l); err != nil {
@@ -71,7 +73,7 @@ func ConsDropout(x *G.Node, opts ...ConsOpt) (l Layer, err error) {
 func (l dropout) Model() G.Nodes { return nil }
 func (l dropout) Fwd(x G.Input) G.Result {
 	if err := G.CheckOne(x); err != nil {
-		return G.Err{err}
+		return G.Err(err)
 	}
 	return G.LiftResult(gorgonia.Dropout(x.Node(), float64(l)))
 }
