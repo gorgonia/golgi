@@ -144,13 +144,12 @@ func (l *FC) Init(xs ...*G.Node) (err error) {
 		}
 	}
 	xshp := X.Shape()
-
 	l.w = G.NewMatrix(g, of, G.WithShape(xshp[1], l.size), G.WithInit(G.GlorotU(1)), G.WithName(l.name+"_W"))
 	switch {
 	case l.batched && !l.nobias:
 		l.b = G.NewMatrix(g, of, G.WithShape(1, l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
 	case !l.batched && !l.nobias:
-		l.b = G.NewMatrix(g, of, G.WithShape(xshp[0], xshp[1]), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
+		l.b = G.NewMatrix(g, of, G.WithShape(xshp[0], l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
 	}
 	l.initialized = true
 	return nil

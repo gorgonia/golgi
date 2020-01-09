@@ -84,5 +84,5 @@ func Example_extension() {
 	// ======
 	// l.size is 0. But the models shapes are correct as follows:
 	// 	EXT_W - (1, 100)
-	// 	EXT_B - (100, 1)
+	// 	EXT_B - (100, 100)
 }
