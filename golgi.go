@@ -47,6 +47,8 @@ func Redefine(l Layer, opts ...ConsOpt) (retVal Layer, err error) {
 	return l, nil
 }
 
+// Apply will apply two terms and return the resulting term
+// Note: This has not yet been implemented, please do not use!
 func Apply(a, b Term) (Term, error) {
 	panic("STUBBED")
 }
