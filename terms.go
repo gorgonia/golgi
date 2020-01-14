@@ -20,6 +20,7 @@ type Term interface {
 // Name is a variable by name
 type Name string
 
+// Name will return itself as a string
 func (n Name) Name() string { return string(n) }
 
 // Env is a linked list representing an environment.
@@ -42,6 +43,13 @@ type Env struct {
 // NewEnv creates a new Env.
 func NewEnv(name string, node *G.Node) *Env {
 	return &Env{name: name, node: node}
+}
+
+func (e *Env) hinted(prealloc G.Nodes) {
+	prealloc = append(prealloc, e.node)
+	if e.prev != nil {
+		e.prev.hinted(prealloc)
+	}
 }
 
 // Extend allows users to extend the environment.
@@ -74,6 +82,7 @@ func (e *Env) ByName(name string) (*G.Node, *Env) {
 	return nil, nil
 }
 
+// Model will return the gorgonia.Nodes associated with this environment
 func (e *Env) Model() G.Nodes {
 	retVal := G.Nodes{e.node}
 	if e.prev != nil {
@@ -82,19 +91,14 @@ func (e *Env) Model() G.Nodes {
 	return retVal
 }
 
+// HintedModel will return the gorgonia.Nodes hinted associated with this environment
 func (e *Env) HintedModel(hint int) G.Nodes {
 	prealloc := make(G.Nodes, 0, hint)
 	e.hinted(prealloc)
 	return prealloc
 }
 
-func (e *Env) hinted(prealloc G.Nodes) {
-	prealloc = append(prealloc, e.node)
-	if e.prev != nil {
-		e.prev.hinted(prealloc)
-	}
-}
-
+// Name will return the name of the composition
 func (e *Env) Name() string {
 	var name string
 	if e.prev != nil {
