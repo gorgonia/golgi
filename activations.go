@@ -17,7 +17,7 @@ const (
 
 var maxact = cube
 
-var internalmaps = map[activation]func(*G.Node) (*G.Node, error){
+var internalmaps = map[activation]ActivationFunction{
 	identity:  nil,
 	sigmoid:   G.Sigmoid,
 	tanh:      G.Tanh,

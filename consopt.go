@@ -2,7 +2,6 @@ package golgi
 
 import (
 	"github.com/pkg/errors"
-	G "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -18,7 +17,7 @@ type sizeSetter interface {
 }
 
 type actSetter interface {
-	SetActivationFn(act func(*G.Node) (*G.Node, error)) error
+	SetActivationFn(act ActivationFunction) error
 }
 
 // WithName creates a layer that is named.
@@ -97,7 +96,7 @@ func WithSize(size ...int) ConsOpt {
 }
 
 // WithActivation sets the activation function of a layer
-func WithActivation(act func(*G.Node) (*G.Node, error)) ConsOpt {
+func WithActivation(act ActivationFunction) ConsOpt {
 	return func(layer Layer) (Layer, error) {
 		switch l := layer.(type) {
 		case *FC:

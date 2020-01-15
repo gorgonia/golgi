@@ -20,7 +20,7 @@ type Metadata struct {
 	name         string
 	Size         int
 	shape        tensor.Shape
-	ActivationFn func(*G.Node) (*G.Node, error)
+	ActivationFn ActivationFunction
 
 	//internal state
 	upd uint // counts the number of times the data structure has been updated.
@@ -69,7 +69,7 @@ func (m *Metadata) SetSize(size int) error {
 }
 
 // SetActivationFn allows the metadata to store activation function.
-func (m *Metadata) SetActivationFn(act func(*G.Node) (*G.Node, error)) error {
+func (m *Metadata) SetActivationFn(act ActivationFunction) error {
 	if m.ActivationFn != nil {
 		return errors.New("A clashing activation function already exists")
 	}

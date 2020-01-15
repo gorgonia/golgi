@@ -30,7 +30,7 @@ func WithWB(w, b *G.Node) ConsOpt {
 // If batched is set to true, then the first dimension is assumed to be the batch dimension
 type FC struct {
 	w, b *G.Node
-	act  func(*G.Node) (*G.Node, error)
+	act  ActivationFunction
 
 	name string
 
@@ -42,7 +42,7 @@ type FC struct {
 }
 
 // MakeFC creates a FC with the given parameters
-func MakeFC(w, b *G.Node, act func(*G.Node) (*G.Node, error), name string, batched bool) FC {
+func MakeFC(w, b *G.Node, act ActivationFunction, name string, batched bool) FC {
 	return FC{
 		w:           w,
 		b:           b,
