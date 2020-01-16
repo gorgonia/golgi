@@ -1,40 +1,134 @@
 package golgi
 
 import (
+	"fmt"
+
 	"github.com/chewxy/hm"
-	G "gorgonia.org/gorgonia"
+	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
-// LSTM represents a static LSTM model
-type LSTM struct{}
+func newLSTM(g *gorgonia.ExprGraph, l *LSTMLayer, name string) *LSTM {
+	retVal := new(LSTM)
+	retVal.inputGateWeight = gorgonia.NodeFromAny(g, l.inputGateWeight, gorgonia.WithName("wix_"+name))
+	retVal.inputGateHiddenWeight = gorgonia.NodeFromAny(g, l.inputGateHiddenWeight, gorgonia.WithName("wih_"+name))
+	retVal.inputBias = gorgonia.NodeFromAny(g, l.inputBias, gorgonia.WithName("bias_i_"+name))
+
+	retVal.forgetGateWeight = gorgonia.NodeFromAny(g, l.forgetGateWeight, gorgonia.WithName("wfx_"+name))
+	retVal.forgetGateHiddenWeight = gorgonia.NodeFromAny(g, l.forgetGateHiddenWeight, gorgonia.WithName("wfh_"+name))
+	retVal.forgetBias = gorgonia.NodeFromAny(g, l.forgetBias, gorgonia.WithName("bias_f_"+name))
+
+	retVal.outputGateWeight = gorgonia.NodeFromAny(g, l.outputGateWeight, gorgonia.WithName("wox_"+name))
+	retVal.outputGateHiddenWeight = gorgonia.NodeFromAny(g, l.outputGateHiddenWeight, gorgonia.WithName("woh_"+name))
+	retVal.outputBias = gorgonia.NodeFromAny(g, l.outputBias, gorgonia.WithName("bias_o_"+name))
+
+	retVal.cellGateWeight = gorgonia.NodeFromAny(g, l.cellGateWeight, gorgonia.WithName("wcx_"+name))
+	retVal.cellGateHiddenWeight = gorgonia.NodeFromAny(g, l.cellGateHiddenWeight, gorgonia.WithName("wch_"+name))
+	retVal.cellBias = gorgonia.NodeFromAny(g, l.cellBias, gorgonia.WithName("bias_c_"+name))
+	return retVal
+}
+
+// LSTM represents an LSTM RNN
+type LSTM struct {
+	name string
+
+	inputGateWeight       *gorgonia.Node
+	inputGateHiddenWeight *gorgonia.Node
+	inputBias             *gorgonia.Node
+
+	forgetGateWeight       *gorgonia.Node
+	forgetGateHiddenWeight *gorgonia.Node
+	forgetBias             *gorgonia.Node
+
+	outputGateWeight       *gorgonia.Node
+	outputGateHiddenWeight *gorgonia.Node
+	outputBias             *gorgonia.Node
+
+	cellGateWeight       *gorgonia.Node
+	cellGateHiddenWeight *gorgonia.Node
+	cellBias             *gorgonia.Node
+}
 
 // Model will return the gorgonia.Nodes associated with this LSTM
-func (l *LSTM) Model() G.Nodes {
-	panic("not implemented")
+func (l *LSTM) Model() gorgonia.Nodes {
+	return gorgonia.Nodes{l.inputBias, l.outputBias}
 }
 
 // Fwd runs the equation forwards
-func (l *LSTM) Fwd(x G.Input) G.Result {
-	panic("not implemented")
+// TODO: Convert this to a proper Fwd, this is still a crude copy of charRNN
+func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
+	var inputVector, prevHidden, prevCell *gorgonia.Node
+	var h0, h1, inputGate *gorgonia.Node
+	h0 = gorgonia.Must(gorgonia.Mul(l.inputGateWeight, inputVector))
+	h1 = gorgonia.Must(gorgonia.Mul(l.inputGateHiddenWeight, prevHidden))
+	inputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h0, h1)), l.inputBias))))
+
+	var h2, h3, forgetGate *gorgonia.Node
+	h2 = gorgonia.Must(gorgonia.Mul(l.forgetGateWeight, inputVector))
+	h3 = gorgonia.Must(gorgonia.Mul(l.forgetGateHiddenWeight, prevHidden))
+	forgetGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h2, h3)), l.forgetBias))))
+
+	var h4, h5, outputGate *gorgonia.Node
+	h4 = gorgonia.Must(gorgonia.Mul(l.outputGateWeight, inputVector))
+	h5 = gorgonia.Must(gorgonia.Mul(l.outputGateHiddenWeight, prevHidden))
+	outputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h4, h5)), l.outputBias))))
+
+	var h6, h7, cellWrite *gorgonia.Node
+	h6 = gorgonia.Must(gorgonia.Mul(l.cellGateWeight, inputVector))
+	h7 = gorgonia.Must(gorgonia.Mul(l.cellGateHiddenWeight, prevHidden))
+	cellWrite = gorgonia.Must(gorgonia.Tanh(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h6, h7)), l.cellBias))))
+
+	// cell activations
+	var retain, write *gorgonia.Node
+	retain = gorgonia.Must(gorgonia.HadamardProd(forgetGate, prevCell))
+	write = gorgonia.Must(gorgonia.HadamardProd(inputGate, cellWrite))
+	cell := gorgonia.Must(gorgonia.Add(retain, write))
+	hidden := gorgonia.Must(gorgonia.HadamardProd(outputGate, gorgonia.Must(gorgonia.Tanh(cell))))
+	fmt.Println("Hidden", hidden)
+	return nil
 }
 
 // Type will return the hm.Type of the LSTM
 func (l *LSTM) Type() hm.Type {
-	panic("not implemented")
+	return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('b'))
 }
 
 // Shape will return the tensor.Shape of the LSTM
 func (l *LSTM) Shape() tensor.Shape {
-	panic("not implemented")
+	return l.inputBias.Shape()
 }
 
 // Name will return the name of the LSTM
 func (l *LSTM) Name() string {
-	panic("not implemented")
+	return l.Name()
 }
 
 // Describe will describe a LSTM
 func (l *LSTM) Describe() {
 	panic("not implemented")
+}
+
+// SetName will set the name of a fully connected layer
+func (l *LSTM) SetName(a string) error {
+	l.name = a
+	return nil
+}
+
+// LSTMLayer represents a basic LSTM layer
+type LSTMLayer struct {
+	inputGateWeight       gorgonia.Value
+	inputGateHiddenWeight gorgonia.Value
+	inputBias             gorgonia.Value
+
+	forgetGateWeight       gorgonia.Value
+	forgetGateHiddenWeight gorgonia.Value
+	forgetBias             gorgonia.Value
+
+	outputGateWeight       gorgonia.Value
+	outputGateHiddenWeight gorgonia.Value
+	outputBias             gorgonia.Value
+
+	cellGateWeight       gorgonia.Value
+	cellGateHiddenWeight gorgonia.Value
+	cellBias             gorgonia.Value
 }
