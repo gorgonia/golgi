@@ -15,9 +15,9 @@ const (
 	cube
 )
 
-var maxact activation = cube
+var maxact = cube
 
-var internalmaps = map[activation]func(*G.Node) (*G.Node, error){
+var internalmaps = map[activation]ActivationFunction{
 	identity:  nil,
 	sigmoid:   G.Sigmoid,
 	tanh:      G.Tanh,
@@ -25,5 +25,5 @@ var internalmaps = map[activation]func(*G.Node) (*G.Node, error){
 	leakyRelu: nil, // TODO
 	elu:       nil, //TODO
 	// softmax:   G.SoftMax, // TODO
-	cube:      G.Cube,
+	cube: G.Cube,
 }

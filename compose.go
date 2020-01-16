@@ -53,6 +53,7 @@ func ComposeSeq(layers ...Term) (retVal *Composition, err error) {
 	return l.(*Composition), nil
 }
 
+// Fwd runs the equation forwards
 func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	if err := G.CheckOne(a); err != nil {
 		return G.Err(errors.Wrapf(err, "Forward of a Composition %v", l.Name()))
@@ -101,6 +102,7 @@ next:
 	return
 }
 
+// Model will return the gorgonia.Nodes associated with this composition
 func (l *Composition) Model() (retVal G.Nodes) {
 	if a, ok := l.a.(Layer); ok {
 		return append(a.Model(), l.b.(Layer).Model()...)
@@ -108,14 +110,19 @@ func (l *Composition) Model() (retVal G.Nodes) {
 	return l.b.(Layer).Model()
 }
 
+// Type will return the hm.Type of the composition
 func (l *Composition) Type() hm.Type { return l.retType }
 
+// Shape will return the tensor.Shape of the composition
 func (l *Composition) Shape() tensor.Shape { return l.retShape }
 
+// Name will return the name of the composition
 func (l *Composition) Name() string { return fmt.Sprintf("%v ∘ %v", l.b, l.a) }
 
+// Describe will describe a composition
 func (l *Composition) Describe() { panic("STUB") }
 
+// ByName returns a Term by name
 func (l *Composition) ByName(name string) Term {
 	if l.a.Name() == name {
 		return l.a

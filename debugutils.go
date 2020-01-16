@@ -20,7 +20,7 @@ type Metadata struct {
 	name         string
 	Size         int
 	shape        tensor.Shape
-	ActivationFn func(*G.Node) (*G.Node, error)
+	ActivationFn ActivationFunction
 
 	//internal state
 	upd uint // counts the number of times the data structure has been updated.
@@ -30,13 +30,23 @@ type Metadata struct {
 // Unfortunately this also means that the name is not an exported field. A little inconsistency there.
 func (m *Metadata) Name() string { return m.name }
 
+// Shape will return the tensor.Shape of the metadata
 func (m *Metadata) Shape() tensor.Shape { return m.shape }
 
-func (m *Metadata) Describe()              {}
-func (m *Metadata) Model() G.Nodes         { return nil }
+// Describe will describe a metadata
+func (m *Metadata) Describe() {}
+
+// Model will return the gorgonia.Nodes associated with this metadata
+func (m *Metadata) Model() G.Nodes { return nil }
+
+// Fwd runs the equation forwards
 func (m *Metadata) Fwd(x G.Input) G.Result { return G.Err(errors.New("Metadata is a dummy Layer")) }
-func (m *Metadata) Type() hm.Type          { return nil }
-func (m *Metadata) PassThru()              {}
+
+// Type will return the hm.Type of the metadata
+func (m *Metadata) Type() hm.Type { return nil }
+
+// PassThru represents a passthru function
+func (m *Metadata) PassThru() {}
 
 // SetName allows for names to be set by a ConsOpt
 func (m *Metadata) SetName(name string) error {
@@ -59,7 +69,7 @@ func (m *Metadata) SetSize(size int) error {
 }
 
 // SetActivationFn allows the metadata to store activation function.
-func (m *Metadata) SetActivationFn(act func(*G.Node) (*G.Node, error)) error {
+func (m *Metadata) SetActivationFn(act ActivationFunction) error {
 	if m.ActivationFn != nil {
 		return errors.New("A clashing activation function already exists")
 	}
@@ -72,7 +82,7 @@ func (m *Metadata) SetActivationFn(act func(*G.Node) (*G.Node, error)) error {
 // This allows users to selectively use the metadata and/or ConsOpt options
 func ExtractMetadata(opts ...ConsOpt) (retVal Metadata, unused []ConsOpt, err error) {
 	var l Layer = &retVal
-	var m *Metadata = &retVal
+	m := &retVal
 	var ok bool
 	upd := m.upd
 	for _, opt := range opts {
@@ -88,6 +98,7 @@ func ExtractMetadata(opts ...ConsOpt) (retVal Metadata, unused []ConsOpt, err er
 			unused = append(unused, opt)
 		}
 	}
+
 	return *m, unused, nil
 }
 
@@ -101,17 +112,20 @@ type trace struct {
 // Trace creates a layer for debugging composed layers
 //
 // The format string adds four things: "%s %v (%p) %v" - name (of trace), x, x, x.Shape()
-func Trace(name, format, errFormat string, logger *log.Logger) *trace {
+func Trace(name, format, errFormat string, logger *log.Logger) Term {
 	const (
 		def    = "\t%s %v (%p) %v"
 		defErr = "\tERR %s %+v"
 	)
+
 	if format == "" {
 		format = def
 	}
+
 	if errFormat == "" {
 		errFormat = defErr
 	}
+
 	return &trace{
 		name:      name,
 		format:    format,
