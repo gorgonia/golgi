@@ -31,6 +31,31 @@ type LSTM struct {
 	cell   whb
 }
 
+func (l *LSTM) getGate(w *whb, inputVector, prevHidden *gorgonia.Node, act ActivationFunction) (gate *gorgonia.Node, err error) {
+	var h0 *gorgonia.Node
+	if h0, err = gorgonia.Mul(w.wx, inputVector); err != nil {
+		return
+	}
+
+	var h1 *gorgonia.Node
+	if h1, err = gorgonia.Mul(w.wh, prevHidden); err != nil {
+		return
+	}
+
+	// Set gate as the sum of h0 and h1
+	if gate, err = gorgonia.Add(h0, h1); err != nil {
+		return
+	}
+
+	// Set the gate as the sum of current gate and the whb bias
+	if gate, err = gorgonia.Add(gate, w.b); err != nil {
+		return
+	}
+
+	// Return gate with activation func performed on it
+	return act(gate)
+}
+
 // Model will return the gorgonia.Nodes associated with this LSTM
 func (l *LSTM) Model() gorgonia.Nodes {
 	return gorgonia.Nodes{l.input.b, l.forget.b, l.output.b, l.cell.b}
@@ -39,26 +64,32 @@ func (l *LSTM) Model() gorgonia.Nodes {
 // Fwd runs the equation forwards
 // TODO: Convert this to a proper Fwd, this is still a crude copy of charRNN
 func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
-	var inputVector, prevHidden, prevCell *gorgonia.Node
-	var h0, h1, inputGate *gorgonia.Node
-	h0 = gorgonia.Must(gorgonia.Mul(l.input.wx, inputVector))
-	h1 = gorgonia.Must(gorgonia.Mul(l.input.wh, prevHidden))
-	inputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h0, h1)), l.input.b))))
+	var (
+		inputGate *gorgonia.Node
+		err       error
 
-	var h2, h3, forgetGate *gorgonia.Node
-	h2 = gorgonia.Must(gorgonia.Mul(l.forget.wx, inputVector))
-	h3 = gorgonia.Must(gorgonia.Mul(l.forget.wh, prevHidden))
-	forgetGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h2, h3)), l.forget.b))))
+		// TODO: These need to be set
+		inputVector, prevHidden, prevCell *gorgonia.Node
+	)
 
-	var h4, h5, outputGate *gorgonia.Node
-	h4 = gorgonia.Must(gorgonia.Mul(l.output.wx, inputVector))
-	h5 = gorgonia.Must(gorgonia.Mul(l.output.wh, prevHidden))
-	outputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h4, h5)), l.output.b))))
+	if inputGate, err = l.getGate(&l.input, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+		return gorgonia.Err(err)
+	}
 
-	var h6, h7, cellWrite *gorgonia.Node
-	h6 = gorgonia.Must(gorgonia.Mul(l.cell.wx, inputVector))
-	h7 = gorgonia.Must(gorgonia.Mul(l.cell.wh, prevHidden))
-	cellWrite = gorgonia.Must(gorgonia.Tanh(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h6, h7)), l.cell.b))))
+	var forgetGate *gorgonia.Node
+	if forgetGate, err = l.getGate(&l.forget, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+		return gorgonia.Err(err)
+	}
+
+	var outputGate *gorgonia.Node
+	if outputGate, err = l.getGate(&l.output, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+		return gorgonia.Err(err)
+	}
+
+	var cellWrite *gorgonia.Node
+	if cellWrite, err = l.getGate(&l.cell, inputVector, prevHidden, gorgonia.Tanh); err != nil {
+		return gorgonia.Err(err)
+	}
 
 	// cell activations
 	var retain, write *gorgonia.Node
@@ -66,6 +97,10 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 	write = gorgonia.Must(gorgonia.HadamardProd(inputGate, cellWrite))
 	cell := gorgonia.Must(gorgonia.Add(retain, write))
 	hidden := gorgonia.Must(gorgonia.HadamardProd(outputGate, gorgonia.Must(gorgonia.Tanh(cell))))
+
+	// Using fmt to hold the value of hidden so the compiler doesn't get upset.
+	// This will be removed once all the func values are utilized and the compiler
+	// no longer needs to complain.
 	fmt.Println("Hidden", hidden)
 	return nil
 }
