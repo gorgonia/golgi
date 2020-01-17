@@ -8,24 +8,24 @@ import (
 	"gorgonia.org/tensor"
 )
 
-func newLSTM(g *gorgonia.ExprGraph, l *LSTMLayer, name string) *LSTM {
-	retVal := new(LSTM)
-	retVal.inputGateWeight = gorgonia.NodeFromAny(g, l.inputGateWeight, gorgonia.WithName("wix_"+name))
-	retVal.inputGateHiddenWeight = gorgonia.NodeFromAny(g, l.inputGateHiddenWeight, gorgonia.WithName("wih_"+name))
-	retVal.inputBias = gorgonia.NodeFromAny(g, l.inputBias, gorgonia.WithName("bias_i_"+name))
+func newLSTM(g *gorgonia.ExprGraph, layer *LSTMLayer, name string) (lp *LSTM) {
+	var l LSTM
+	l.inputGateWeight = gorgonia.NodeFromAny(g, layer.inputGateWeight, gorgonia.WithName("wix_"+name))
+	l.inputGateHiddenWeight = gorgonia.NodeFromAny(g, layer.inputGateHiddenWeight, gorgonia.WithName("wih_"+name))
+	l.inputBias = gorgonia.NodeFromAny(g, layer.inputBias, gorgonia.WithName("bias_i_"+name))
 
-	retVal.forgetGateWeight = gorgonia.NodeFromAny(g, l.forgetGateWeight, gorgonia.WithName("wfx_"+name))
-	retVal.forgetGateHiddenWeight = gorgonia.NodeFromAny(g, l.forgetGateHiddenWeight, gorgonia.WithName("wfh_"+name))
-	retVal.forgetBias = gorgonia.NodeFromAny(g, l.forgetBias, gorgonia.WithName("bias_f_"+name))
+	l.forgetGateWeight = gorgonia.NodeFromAny(g, layer.forgetGateWeight, gorgonia.WithName("wfx_"+name))
+	l.forgetGateHiddenWeight = gorgonia.NodeFromAny(g, layer.forgetGateHiddenWeight, gorgonia.WithName("wfh_"+name))
+	l.forgetBias = gorgonia.NodeFromAny(g, layer.forgetBias, gorgonia.WithName("bias_f_"+name))
 
-	retVal.outputGateWeight = gorgonia.NodeFromAny(g, l.outputGateWeight, gorgonia.WithName("wox_"+name))
-	retVal.outputGateHiddenWeight = gorgonia.NodeFromAny(g, l.outputGateHiddenWeight, gorgonia.WithName("woh_"+name))
-	retVal.outputBias = gorgonia.NodeFromAny(g, l.outputBias, gorgonia.WithName("bias_o_"+name))
+	l.outputGateWeight = gorgonia.NodeFromAny(g, layer.outputGateWeight, gorgonia.WithName("wox_"+name))
+	l.outputGateHiddenWeight = gorgonia.NodeFromAny(g, layer.outputGateHiddenWeight, gorgonia.WithName("woh_"+name))
+	l.outputBias = gorgonia.NodeFromAny(g, layer.outputBias, gorgonia.WithName("bias_o_"+name))
 
-	retVal.cellGateWeight = gorgonia.NodeFromAny(g, l.cellGateWeight, gorgonia.WithName("wcx_"+name))
-	retVal.cellGateHiddenWeight = gorgonia.NodeFromAny(g, l.cellGateHiddenWeight, gorgonia.WithName("wch_"+name))
-	retVal.cellBias = gorgonia.NodeFromAny(g, l.cellBias, gorgonia.WithName("bias_c_"+name))
-	return retVal
+	l.cellGateWeight = gorgonia.NodeFromAny(g, layer.cellGateWeight, gorgonia.WithName("wcx_"+name))
+	l.cellGateHiddenWeight = gorgonia.NodeFromAny(g, layer.cellGateHiddenWeight, gorgonia.WithName("wch_"+name))
+	l.cellBias = gorgonia.NodeFromAny(g, layer.cellBias, gorgonia.WithName("bias_c_"+name))
+	return &l
 }
 
 // LSTM represents an LSTM RNN
