@@ -51,7 +51,7 @@ type LSTM struct {
 
 // Model will return the gorgonia.Nodes associated with this LSTM
 func (l *LSTM) Model() gorgonia.Nodes {
-	return gorgonia.Nodes{l.inputBias, l.outputBias}
+	return gorgonia.Nodes{l.inputBias, l.forgetBias, l.outputBias, l.cellBias}
 }
 
 // Fwd runs the equation forwards
