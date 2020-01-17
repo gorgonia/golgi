@@ -117,7 +117,7 @@ func (l *LSTM) Shape() tensor.Shape {
 
 // Name will return the name of the LSTM
 func (l *LSTM) Name() string {
-	return l.Name()
+	return l.name
 }
 
 // Describe will describe a LSTM
