@@ -10,21 +10,12 @@ import (
 
 func newLSTM(g *gorgonia.ExprGraph, layer *LSTMLayer, name string) (lp *LSTM) {
 	var l LSTM
-	l.inputGateWeight = gorgonia.NodeFromAny(g, layer.inputGateWeight, gorgonia.WithName("wix_"+name))
-	l.inputGateHiddenWeight = gorgonia.NodeFromAny(g, layer.inputGateHiddenWeight, gorgonia.WithName("wih_"+name))
-	l.inputBias = gorgonia.NodeFromAny(g, layer.inputBias, gorgonia.WithName("bias_i_"+name))
-
-	l.forgetGateWeight = gorgonia.NodeFromAny(g, layer.forgetGateWeight, gorgonia.WithName("wfx_"+name))
-	l.forgetGateHiddenWeight = gorgonia.NodeFromAny(g, layer.forgetGateHiddenWeight, gorgonia.WithName("wfh_"+name))
-	l.forgetBias = gorgonia.NodeFromAny(g, layer.forgetBias, gorgonia.WithName("bias_f_"+name))
-
-	l.outputGateWeight = gorgonia.NodeFromAny(g, layer.outputGateWeight, gorgonia.WithName("wox_"+name))
-	l.outputGateHiddenWeight = gorgonia.NodeFromAny(g, layer.outputGateHiddenWeight, gorgonia.WithName("woh_"+name))
-	l.outputBias = gorgonia.NodeFromAny(g, layer.outputBias, gorgonia.WithName("bias_o_"+name))
-
-	l.cellGateWeight = gorgonia.NodeFromAny(g, layer.cellGateWeight, gorgonia.WithName("wcx_"+name))
-	l.cellGateHiddenWeight = gorgonia.NodeFromAny(g, layer.cellGateHiddenWeight, gorgonia.WithName("wch_"+name))
-	l.cellBias = gorgonia.NodeFromAny(g, layer.cellBias, gorgonia.WithName("bias_c_"+name))
+	l.g = g
+	l.name = name
+	l.input = layer.getInput(g, name)
+	l.forget = layer.getInput(g, name)
+	l.output = layer.getInput(g, name)
+	l.cell = layer.getInput(g, name)
 	return &l
 }
 
@@ -32,26 +23,17 @@ func newLSTM(g *gorgonia.ExprGraph, layer *LSTMLayer, name string) (lp *LSTM) {
 type LSTM struct {
 	name string
 
-	inputGateWeight       *gorgonia.Node
-	inputGateHiddenWeight *gorgonia.Node
-	inputBias             *gorgonia.Node
+	g *gorgonia.ExprGraph
 
-	forgetGateWeight       *gorgonia.Node
-	forgetGateHiddenWeight *gorgonia.Node
-	forgetBias             *gorgonia.Node
-
-	outputGateWeight       *gorgonia.Node
-	outputGateHiddenWeight *gorgonia.Node
-	outputBias             *gorgonia.Node
-
-	cellGateWeight       *gorgonia.Node
-	cellGateHiddenWeight *gorgonia.Node
-	cellBias             *gorgonia.Node
+	input  whb
+	forget whb
+	output whb
+	cell   whb
 }
 
 // Model will return the gorgonia.Nodes associated with this LSTM
 func (l *LSTM) Model() gorgonia.Nodes {
-	return gorgonia.Nodes{l.inputBias, l.forgetBias, l.outputBias, l.cellBias}
+	return gorgonia.Nodes{l.input.b, l.forget.b, l.output.b, l.cell.b}
 }
 
 // Fwd runs the equation forwards
@@ -59,24 +41,24 @@ func (l *LSTM) Model() gorgonia.Nodes {
 func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 	var inputVector, prevHidden, prevCell *gorgonia.Node
 	var h0, h1, inputGate *gorgonia.Node
-	h0 = gorgonia.Must(gorgonia.Mul(l.inputGateWeight, inputVector))
-	h1 = gorgonia.Must(gorgonia.Mul(l.inputGateHiddenWeight, prevHidden))
-	inputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h0, h1)), l.inputBias))))
+	h0 = gorgonia.Must(gorgonia.Mul(l.input.wx, inputVector))
+	h1 = gorgonia.Must(gorgonia.Mul(l.input.wh, prevHidden))
+	inputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h0, h1)), l.input.b))))
 
 	var h2, h3, forgetGate *gorgonia.Node
-	h2 = gorgonia.Must(gorgonia.Mul(l.forgetGateWeight, inputVector))
-	h3 = gorgonia.Must(gorgonia.Mul(l.forgetGateHiddenWeight, prevHidden))
-	forgetGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h2, h3)), l.forgetBias))))
+	h2 = gorgonia.Must(gorgonia.Mul(l.forget.wx, inputVector))
+	h3 = gorgonia.Must(gorgonia.Mul(l.forget.wh, prevHidden))
+	forgetGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h2, h3)), l.forget.b))))
 
 	var h4, h5, outputGate *gorgonia.Node
-	h4 = gorgonia.Must(gorgonia.Mul(l.outputGateWeight, inputVector))
-	h5 = gorgonia.Must(gorgonia.Mul(l.outputGateHiddenWeight, prevHidden))
-	outputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h4, h5)), l.outputBias))))
+	h4 = gorgonia.Must(gorgonia.Mul(l.output.wx, inputVector))
+	h5 = gorgonia.Must(gorgonia.Mul(l.output.wh, prevHidden))
+	outputGate = gorgonia.Must(gorgonia.Sigmoid(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h4, h5)), l.output.b))))
 
 	var h6, h7, cellWrite *gorgonia.Node
-	h6 = gorgonia.Must(gorgonia.Mul(l.cellGateWeight, inputVector))
-	h7 = gorgonia.Must(gorgonia.Mul(l.cellGateHiddenWeight, prevHidden))
-	cellWrite = gorgonia.Must(gorgonia.Tanh(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h6, h7)), l.cellBias))))
+	h6 = gorgonia.Must(gorgonia.Mul(l.cell.wx, inputVector))
+	h7 = gorgonia.Must(gorgonia.Mul(l.cell.wh, prevHidden))
+	cellWrite = gorgonia.Must(gorgonia.Tanh(gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Add(h6, h7)), l.cell.b))))
 
 	// cell activations
 	var retain, write *gorgonia.Node
@@ -95,7 +77,7 @@ func (l *LSTM) Type() hm.Type {
 
 // Shape will return the tensor.Shape of the LSTM
 func (l *LSTM) Shape() tensor.Shape {
-	return l.inputBias.Shape()
+	return l.input.b.Shape()
 }
 
 // Name will return the name of the LSTM
@@ -112,23 +94,4 @@ func (l *LSTM) Describe() {
 func (l *LSTM) SetName(a string) error {
 	l.name = a
 	return nil
-}
-
-// LSTMLayer represents a basic LSTM layer
-type LSTMLayer struct {
-	inputGateWeight       gorgonia.Value
-	inputGateHiddenWeight gorgonia.Value
-	inputBias             gorgonia.Value
-
-	forgetGateWeight       gorgonia.Value
-	forgetGateHiddenWeight gorgonia.Value
-	forgetBias             gorgonia.Value
-
-	outputGateWeight       gorgonia.Value
-	outputGateHiddenWeight gorgonia.Value
-	outputBias             gorgonia.Value
-
-	cellGateWeight       gorgonia.Value
-	cellGateHiddenWeight gorgonia.Value
-	cellBias             gorgonia.Value
 }
