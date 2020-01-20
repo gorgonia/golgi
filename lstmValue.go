@@ -8,8 +8,8 @@ var (
 	_ gorgonia.Result = &lstmValue{}
 )
 
-// makeLSTMInput will return a new lstmValue
-func makeLSTMInput(x, prevHidden, prevCell *gorgonia.Node, err error) (l lstmValue) {
+// makeLSTMValue will return a new lstmValue
+func makeLSTMValue(x, prevHidden, prevCell *gorgonia.Node, err error) (l lstmValue) {
 	l.x = x
 	l.prevHidden = prevHidden
 	l.prevCell = prevCell
