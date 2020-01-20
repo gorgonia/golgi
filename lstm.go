@@ -32,31 +32,6 @@ type LSTM struct {
 	cell   whb
 }
 
-func (l *LSTM) activateGate(w *whb, inputVector, prevHidden *gorgonia.Node, act ActivationFunction) (gate *gorgonia.Node, err error) {
-	var h0 *gorgonia.Node
-	if h0, err = gorgonia.Mul(w.wx, inputVector); err != nil {
-		return
-	}
-
-	var h1 *gorgonia.Node
-	if h1, err = gorgonia.Mul(w.wh, prevHidden); err != nil {
-		return
-	}
-
-	// Set gate as the sum of h0 and h1
-	if gate, err = gorgonia.Add(h0, h1); err != nil {
-		return
-	}
-
-	// Set the gate as the sum of current gate and the whb bias
-	if gate, err = gorgonia.Add(gate, w.b); err != nil {
-		return
-	}
-
-	// Return gate with activation func performed on it
-	return act(gate)
-}
-
 // Model will return the gorgonia.Nodes associated with this LSTM
 func (l *LSTM) Model() gorgonia.Nodes {
 	return gorgonia.Nodes{
@@ -98,22 +73,22 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 		prevCell = ns[2]
 	}
 
-	if inputGate, err = l.activateGate(&l.input, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+	if inputGate, err = l.input.activateGate(inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
 	}
 
 	var forgetGate *gorgonia.Node
-	if forgetGate, err = l.activateGate(&l.forget, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+	if forgetGate, err = l.forget.activateGate(inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
 	}
 
 	var outputGate *gorgonia.Node
-	if outputGate, err = l.activateGate(&l.output, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+	if outputGate, err = l.output.activateGate(inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
 	}
 
 	var cellWrite *gorgonia.Node
-	if cellWrite, err = l.activateGate(&l.cell, inputVector, prevHidden, gorgonia.Tanh); err != nil {
+	if cellWrite, err = l.cell.activateGate(inputVector, prevHidden, gorgonia.Tanh); err != nil {
 		return gorgonia.Err(err)
 	}
 
