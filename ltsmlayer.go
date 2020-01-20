@@ -22,7 +22,7 @@ type LSTMLayer struct {
 }
 
 func (l *LSTMLayer) getInput(g *gorgonia.ExprGraph, name string) (w whb) {
-	w = newWHB(
+	w = makeWHB(
 		gorgonia.NodeFromAny(g, l.inputGateWeight, gorgonia.WithName("wix_"+name)),
 		gorgonia.NodeFromAny(g, l.inputGateHiddenWeight, gorgonia.WithName("wih_"+name)),
 		gorgonia.NodeFromAny(g, l.inputBias, gorgonia.WithName("bias_i_"+name)),
@@ -32,7 +32,7 @@ func (l *LSTMLayer) getInput(g *gorgonia.ExprGraph, name string) (w whb) {
 }
 
 func (l *LSTMLayer) getForget(g *gorgonia.ExprGraph, name string) (w whb) {
-	w = newWHB(
+	w = makeWHB(
 		gorgonia.NodeFromAny(g, l.forgetGateWeight, gorgonia.WithName("wfx_"+name)),
 		gorgonia.NodeFromAny(g, l.forgetGateHiddenWeight, gorgonia.WithName("wfh_"+name)),
 		gorgonia.NodeFromAny(g, l.forgetBias, gorgonia.WithName("bias_f_"+name)),
@@ -42,7 +42,7 @@ func (l *LSTMLayer) getForget(g *gorgonia.ExprGraph, name string) (w whb) {
 }
 
 func (l *LSTMLayer) getOutput(g *gorgonia.ExprGraph, name string) (w whb) {
-	w = newWHB(
+	w = makeWHB(
 		gorgonia.NodeFromAny(g, l.outputGateWeight, gorgonia.WithName("wox_"+name)),
 		gorgonia.NodeFromAny(g, l.outputGateHiddenWeight, gorgonia.WithName("woh_"+name)),
 		gorgonia.NodeFromAny(g, l.outputBias, gorgonia.WithName("bias_o_"+name)),
@@ -52,7 +52,7 @@ func (l *LSTMLayer) getOutput(g *gorgonia.ExprGraph, name string) (w whb) {
 }
 
 func (l *LSTMLayer) getCell(g *gorgonia.ExprGraph, name string) (w whb) {
-	w = newWHB(
+	w = makeWHB(
 		gorgonia.NodeFromAny(g, l.cellGateWeight, gorgonia.WithName("wcx_"+name)),
 		gorgonia.NodeFromAny(g, l.cellGateHiddenWeight, gorgonia.WithName("wch_"+name)),
 		gorgonia.NodeFromAny(g, l.cellBias, gorgonia.WithName("bias_c_"+name)),

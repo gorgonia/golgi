@@ -2,7 +2,7 @@ package golgi
 
 import "gorgonia.org/gorgonia"
 
-func newWHB(wx, wh, b *gorgonia.Node) (out whb) {
+func makeWHB(wx, wh, b *gorgonia.Node) (out whb) {
 	out.wx = wx
 	out.wh = wh
 	out.b = b
