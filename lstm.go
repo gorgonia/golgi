@@ -144,7 +144,7 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 		return gorgonia.Err(err)
 	}
 
-	result := makeLSTMInput(inputVector, hidden, cell, nil)
+	result := makeLSTMValue(inputVector, hidden, cell, nil)
 	return &result
 }
 
