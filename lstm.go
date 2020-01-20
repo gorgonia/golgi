@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/chewxy/hm"
+	"github.com/pkg/errors"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -62,15 +63,35 @@ func (l *LSTM) Model() gorgonia.Nodes {
 }
 
 // Fwd runs the equation forwards
-// TODO: Convert this to a proper Fwd, this is still a crude copy of charRNN
 func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 	var (
 		inputGate *gorgonia.Node
 		err       error
 
-		// TODO: These need to be set
-		inputVector, prevHidden, prevCell *gorgonia.Node
+		inputVector *gorgonia.Node
+		prevHidden  *gorgonia.Node
+		prevCell    *gorgonia.Node
 	)
+
+	if err = gorgonia.CheckOne(x); err != nil {
+		return gorgonia.Err(err)
+	}
+
+	ns := x.Nodes()
+	switch len(ns) {
+	case 0:
+		err = errors.New("input value does not contain any nodes")
+		return gorgonia.Err(err)
+	case 1:
+		inputVector = ns[0]
+	case 2:
+		err = fmt.Errorf("invalid number of nodes, expected %d and received %d", 3, 2)
+		return gorgonia.Err(err)
+	case 3:
+		inputVector = ns[0]
+		prevHidden = ns[1]
+		prevCell = ns[2]
+	}
 
 	if inputGate, err = l.getGate(&l.input, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
@@ -97,12 +118,8 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 	write = gorgonia.Must(gorgonia.HadamardProd(inputGate, cellWrite))
 	cell := gorgonia.Must(gorgonia.Add(retain, write))
 	hidden := gorgonia.Must(gorgonia.HadamardProd(outputGate, gorgonia.Must(gorgonia.Tanh(cell))))
-
-	// Using fmt to hold the value of hidden so the compiler doesn't get upset.
-	// This will be removed once all the func values are utilized and the compiler
-	// no longer needs to complain.
-	fmt.Println("Hidden", hidden)
-	return nil
+	result := makeLSTMInput(inputVector, hidden, cell, nil)
+	return &result
 }
 
 // Type will return the hm.Type of the LSTM
