@@ -32,7 +32,7 @@ type LSTM struct {
 	cell   whb
 }
 
-func (l *LSTM) getGate(w *whb, inputVector, prevHidden *gorgonia.Node, act ActivationFunction) (gate *gorgonia.Node, err error) {
+func (l *LSTM) activateGate(w *whb, inputVector, prevHidden *gorgonia.Node, act ActivationFunction) (gate *gorgonia.Node, err error) {
 	var h0 *gorgonia.Node
 	if h0, err = gorgonia.Mul(w.wx, inputVector); err != nil {
 		return
@@ -98,28 +98,28 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 		prevCell = ns[2]
 	}
 
-	if inputGate, err = l.getGate(&l.input, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+	if inputGate, err = l.activateGate(&l.input, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
 	}
 
-	var forgetGate *gorgonia.Node
-	if forgetGate, err = l.getGate(&l.forget, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+	var foractivateGate *gorgonia.Node
+	if foractivateGate, err = l.activateGate(&l.forget, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
 	}
 
 	var outputGate *gorgonia.Node
-	if outputGate, err = l.getGate(&l.output, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
+	if outputGate, err = l.activateGate(&l.output, inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
 	}
 
 	var cellWrite *gorgonia.Node
-	if cellWrite, err = l.getGate(&l.cell, inputVector, prevHidden, gorgonia.Tanh); err != nil {
+	if cellWrite, err = l.activateGate(&l.cell, inputVector, prevHidden, gorgonia.Tanh); err != nil {
 		return gorgonia.Err(err)
 	}
 
 	// cell activations
 	var retain, write *gorgonia.Node
-	retain = gorgonia.Must(gorgonia.HadamardProd(forgetGate, prevCell))
+	retain = gorgonia.Must(gorgonia.HadamardProd(foractivateGate, prevCell))
 	write = gorgonia.Must(gorgonia.HadamardProd(inputGate, cellWrite))
 	cell := gorgonia.Must(gorgonia.Add(retain, write))
 	hidden := gorgonia.Must(gorgonia.HadamardProd(outputGate, gorgonia.Must(gorgonia.Tanh(cell))))
