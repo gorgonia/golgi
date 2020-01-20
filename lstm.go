@@ -59,7 +59,12 @@ func (l *LSTM) getGate(w *whb, inputVector, prevHidden *gorgonia.Node, act Activ
 
 // Model will return the gorgonia.Nodes associated with this LSTM
 func (l *LSTM) Model() gorgonia.Nodes {
-	return gorgonia.Nodes{l.input.b, l.forget.b, l.output.b, l.cell.b}
+	return gorgonia.Nodes{
+		l.input.wx, l.input.wh, l.input.b,
+		l.forget.wx, l.forget.wh, l.forget.b,
+		l.output.wx, l.output.wh, l.output.b,
+		l.cell.wx, l.cell.wh, l.cell.b,
+	}
 }
 
 // Fwd runs the equation forwards
