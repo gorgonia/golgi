@@ -21,7 +21,7 @@ type LSTMLayer struct {
 	cellBias             gorgonia.Value
 }
 
-func (l *LSTMLayer) getInput(g *gorgonia.ExprGraph, name string) (w whb) {
+func (l *LSTMLayer) makeGate(g *gorgonia.ExprGraph, name string) (w whb) {
 	w = makeWHB(
 		gorgonia.NodeFromAny(g, l.inputGateWeight, gorgonia.WithName("wix_"+name)),
 		gorgonia.NodeFromAny(g, l.inputGateHiddenWeight, gorgonia.WithName("wih_"+name)),

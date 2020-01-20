@@ -13,10 +13,10 @@ func newLSTM(g *gorgonia.ExprGraph, layer *LSTMLayer, name string) (lp *LSTM) {
 	var l LSTM
 	l.g = g
 	l.name = name
-	l.input = layer.getInput(g, name)
-	l.forget = layer.getInput(g, name)
-	l.output = layer.getInput(g, name)
-	l.cell = layer.getInput(g, name)
+	l.input = layer.makeGate(g, name)
+	l.forget = layer.makeGate(g, name)
+	l.output = layer.makeGate(g, name)
+	l.cell = layer.makeGate(g, name)
 	return &l
 }
 
