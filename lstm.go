@@ -45,12 +45,11 @@ func (l *LSTM) Model() gorgonia.Nodes {
 // Fwd runs the equation forwards
 func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 	var (
-		inputGate *gorgonia.Node
-		err       error
-
 		inputVector *gorgonia.Node
 		prevHidden  *gorgonia.Node
 		prevCell    *gorgonia.Node
+
+		err error
 	)
 
 	if err = gorgonia.CheckOne(x); err != nil {
@@ -73,6 +72,7 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 		prevCell = ns[2]
 	}
 
+	var inputGate *gorgonia.Node
 	if inputGate, err = l.input.activateGate(inputVector, prevHidden, gorgonia.Sigmoid); err != nil {
 		return gorgonia.Err(err)
 	}
