@@ -21,6 +21,42 @@ func NewLSTM(g *gorgonia.ExprGraph, layer *LSTMLayer, name string) (lp *LSTM) {
 	return &l
 }
 
+// ConsLSTM is a LSTM construction function. It takes a gorgonia.Input that has a *gorgonia.Node.
+func ConsLSTM(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
+	x := in.Node()
+	if x == nil {
+		return nil, errors.Errorf("LSTM expects a *Node. Got input %v of  %T instead", in, in)
+	}
+
+	// TODO: Ensure shape is being set correctly
+	inshape := x.Shape()
+	if inshape.Dims() > 2 || inshape.Dims() == 0 {
+		return nil, errors.Errorf("Expected shape is either a vector or a matrix")
+	}
+
+	l := &LSTM{}
+	for _, opt := range opts {
+		var (
+			o  Layer
+			ok bool
+		)
+
+		if o, err = opt(l); err != nil {
+			return
+		}
+
+		if l, ok = o.(*LSTM); !ok {
+			err = errors.Errorf("Construction Option returned a non LSTM. Got %T instead", o)
+			return
+		}
+	}
+
+	// TODO: Handle initialization
+
+	retVal = l
+	return
+}
+
 // LSTM represents an LSTM RNN
 type LSTM struct {
 	name string
@@ -149,3 +185,30 @@ func (l *LSTM) SetName(a string) error {
 	l.name = a
 	return nil
 }
+
+/*
+
+// Init will initialize the fully connected layer
+func (l *FC) Init(xs ...*G.Node) (err error) {
+	x := xs[0]
+	g := x.Graph()
+	of := x.Dtype()
+	X := x
+	if x.IsVec() {
+		if X, err = G.Reshape(x, tensor.Shape{1, x.Shape()[0]}); err != nil {
+			return err
+		}
+	}
+	xshp := X.Shape()
+	l.w = G.NewMatrix(g, of, G.WithShape(xshp[1], l.size), G.WithInit(G.GlorotU(1)), G.WithName(l.name+"_W"))
+	switch {
+	case l.batched && !l.nobias:
+		l.b = G.NewMatrix(g, of, G.WithShape(1, l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
+	case !l.batched && !l.nobias:
+		l.b = G.NewMatrix(g, of, G.WithShape(xshp[0], l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
+	}
+	l.initialized = true
+	return nil
+}
+
+*/
