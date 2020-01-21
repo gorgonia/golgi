@@ -9,7 +9,8 @@ import (
 	"gorgonia.org/tensor"
 )
 
-func newLSTM(g *gorgonia.ExprGraph, layer *LSTMLayer, name string) (lp *LSTM) {
+// NewLSTM will initialize a new LSTM model
+func NewLSTM(g *gorgonia.ExprGraph, layer *LSTMLayer, name string) (lp *LSTM) {
 	var l LSTM
 	l.g = g
 	l.name = name
