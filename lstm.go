@@ -193,7 +193,7 @@ func (l *LSTM) SetName(a string) error {
 }
 
 // Init will initialize the fully connected layer
-func (l *LSTM) Init(xs ...*G.Node) (err error) {
+func (l *LSTM) Init(xs ...*gorgonia.Node) (err error) {
 	x := xs[0]
 	g := x.Graph()
 	of := x.Dtype()
@@ -201,14 +201,14 @@ func (l *LSTM) Init(xs ...*G.Node) (err error) {
 	inner := X.Shape()[0]
 
 	// initialize input gate
-	l.input.init(g, inner, l.size, l.name+"_i", gorgonia.Sigmoid)
-	l.forget.init(g, inner, l.size, l.name+"_f", gorgonia.Sigmoid)
-	l.output.init(g, inner, l.size, l.name+"_o", gorgonia.Sigmoid)
-	l.cell.init(g, inner, l.size, l.name+"_c", gorgonia.Tanh)
+	l.input.init(g, of, inner, l.size, l.name+"_i", gorgonia.Sigmoid)
+	l.forget.init(g, of, inner, l.size, l.name+"_f", gorgonia.Sigmoid)
+	l.output.init(g, of, inner, l.size, l.name+"_o", gorgonia.Sigmoid)
+	l.cell.init(g, of, inner, l.size, l.name+"_c", gorgonia.Tanh)
 
 	// initialize dummyPrev and dummyCell
-	l.dummyHidden = gorgonia.NewMatrix(g, of, gorgonia.WithShape(1, l.size), gorgonia.WithName(l.name+"dummyHidden"), gorgonia.WithInit(Zeroes()))
-	l.dummyCell = gorgonia.NewMatrix(g, of, gorgonia.WithShape(1, l.size), gorgonia.WithName(l.name+"dummySize"), gorgonia.WitInit(Zeroes()))
+	l.dummyHidden = gorgonia.NewMatrix(g, of, gorgonia.WithShape(1, l.size), gorgonia.WithName(l.name+"dummyHidden"), gorgonia.WithInit(gorgonia.Zeroes()))
+	l.dummyCell = gorgonia.NewMatrix(g, of, gorgonia.WithShape(1, l.size), gorgonia.WithName(l.name+"dummySize"), gorgonia.WithInit(gorgonia.Zeroes()))
 	l.initialized = true
 	return nil
 }

@@ -1,6 +1,9 @@
 package golgi
 
-import "gorgonia.org/gorgonia"
+import (
+	"gorgonia.org/gorgonia"
+	"gorgonia.org/tensor"
+)
 
 func makeWHB(wx, wh, b *gorgonia.Node) (out whb) {
 	out.wx = wx
@@ -17,7 +20,7 @@ type whb struct {
 	act ActivationFunction
 }
 
-func (w *whb) init(g *gorgonia.ExprGraph, inner, size int, name string, act ActivationFunction) {
+func (w *whb) init(g *gorgonia.ExprGraph, of tensor.Dtype, inner, size int, name string, act ActivationFunction) {
 	w.wh = gorgonia.NewMatrix(g, of, gorgonia.WithShape(size, size), gorgonia.WithName(name+"_wh"), gorgonia.WithInit(gorgonia.Gaussian(0, 0.08)))
 	w.wx = gorgonia.NewMatrix(g, of, gorgonia.WithShape(inner, size), gorgonia.WithName(name+"_wx"), gorgonia.WithInit(gorgonia.Gaussian(0, 0.08)))
 	w.b = gorgonia.NewMatrix(g, of, gorgonia.WithShape(1, size), gorgonia.WithName(name+"_b"), gorgonia.WithInit(gorgonia.Zeroes()))
