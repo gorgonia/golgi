@@ -44,3 +44,24 @@ func (l *lstmValue) Nodes() (ns gorgonia.Nodes) {
 func (l *lstmValue) Err() error {
 	return l.err
 }
+
+// Mk makes a new Input, given the xs. This is useful for replacing values in the tuple
+//
+// CAVEAT: the replacements depends on the length of xs
+// 	1: replace x
+//	3: replace x, prevCell, prevHidden in this order
+//	other: no replacement. l is returned
+func (l *lstmValue) Mk(xs ...gorgonia.Input) gorgonia.Input {
+	switch len(xs) {
+	case 0:
+		return l
+	case 1:
+		return &lstmValue{x: xs[0].Node(), prevCell: l.prevCell, prevHidden: l.prevHidden}
+	case 2:
+		return l
+	case 3:
+		return &lstmValue{x: xs[0].Node(), prevCell: xs[1].Node(), prevHidden: xs[2].Node()}
+	default:
+		return l
+	}
+}
