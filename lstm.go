@@ -66,10 +66,10 @@ func ConsLSTM(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 		}
 	}
 
-	// TODO: Handle initialization
-	if err := l.Init(input); err != nil {
-		return nil, err
+	if err = l.Init(x); err != nil {
+		return
 	}
+
 	retVal = l
 	return
 }
