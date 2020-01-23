@@ -54,12 +54,12 @@ func (w *whb) activateGate(inputVector, prevHidden *gorgonia.Node) (gate *gorgon
 	}
 
 	// Set gate as the sum of h0 and h1
-	if gate, err = gorgonia.BroadcastAdd(h0, h1, nil, []byte{0}); err != nil {
+	if gate, err = BroadcastAdd(h0, h1, nil, []byte{0}); err != nil {
 		return
 	}
 
 	// Set the gate as the sum of current gate and the whb bias
-	if gate, err = gorgonia.BroadcastAdd(gate, w.b, nil, []byte{0}); err != nil {
+	if gate, err = BroadcastAdd(gate, w.b, nil, []byte{0}); err != nil {
 		return
 	}
 
