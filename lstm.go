@@ -140,12 +140,12 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 
 	// TODO : broadcast op these things
 	var retain *gorgonia.Node
-	if retain, err = gorgonia.HadamardProd(forgetGate, prevCell); err != nil {
+	if retain, err = BroadcastHadamardProd(forgetGate, prevCell, nil, []byte{0}); err != nil {
 		return gorgonia.Err(err)
 	}
 
 	var write *gorgonia.Node
-	if write, err = gorgonia.HadamardProd(inputGate, cellWrite); err != nil {
+	if write, err = BroadcastHadamardProd(inputGate, cellWrite, nil, []byte{0}); err != nil {
 		return gorgonia.Err(err)
 	}
 
@@ -160,7 +160,7 @@ func (l *LSTM) Fwd(x gorgonia.Input) gorgonia.Result {
 	}
 
 	var hidden *gorgonia.Node
-	if hidden, err = gorgonia.HadamardProd(outputGate, tahnCell); err != nil {
+	if hidden, err = BroadcastHadamardProd(outputGate, tahnCell, nil, []byte{0}); err != nil {
 		return gorgonia.Err(err)
 	}
 
@@ -200,7 +200,7 @@ func (l *LSTM) Init(xs ...*gorgonia.Node) (err error) {
 	g := x.Graph()
 	of := x.Dtype()
 	X := x
-	inner := X.Shape()[0]
+	inner := X.Shape()[1]
 
 	// initialize input gate
 	l.input.init(g, of, inner, l.size, l.name+"_i", gorgonia.Sigmoid)
