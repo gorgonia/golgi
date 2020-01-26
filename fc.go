@@ -30,7 +30,7 @@ func WithWB(w, b *G.Node) ConsOpt {
 // If batched is set to true, then the first dimension is assumed to be the batch dimension
 type FC struct {
 	w, b *G.Node
-	act  func(*G.Node) (*G.Node, error)
+	act  ActivationFunction
 
 	name string
 
@@ -42,7 +42,7 @@ type FC struct {
 }
 
 // MakeFC creates a FC with the given parameters
-func MakeFC(w, b *G.Node, act func(*G.Node) (*G.Node, error), name string, batched bool) FC {
+func MakeFC(w, b *G.Node, act ActivationFunction, name string, batched bool) FC {
 	return FC{
 		w:           w,
 		b:           b,
@@ -67,6 +67,7 @@ func NewFC(opts ...ConsOpt) *FC {
 	return retVal
 }
 
+// Model will return the gorgonia.Nodes associated with this fully connected layer
 func (l *FC) Model() G.Nodes {
 	if l.nobias {
 		return G.Nodes{l.w}
@@ -74,6 +75,7 @@ func (l *FC) Model() G.Nodes {
 	return G.Nodes{l.w, l.b}
 }
 
+// Fwd runs the equation forwards
 func (l *FC) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
 		return G.Err(errors.Wrapf(err, "Fwd of FC %v", l.name))
@@ -107,13 +109,29 @@ act:
 	return G.LiftResult(l.act(xwb))
 }
 
-func (l *FC) Type() hm.Type       { return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('b')) }
-func (l *FC) Shape() tensor.Shape { return l.b.Shape() }
-func (l *FC) Name() string        { return l.name }
-func (l *FC) Describe()           { panic("STUB") }
+// Type will return the hm.Type of the fully connected layer
+func (l *FC) Type() hm.Type {
+	return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('b'))
+}
+
+// Shape will return the tensor.Shape of the fully connected layer
+func (l *FC) Shape() tensor.Shape {
+	return l.b.Shape()
+}
+
+// Name will return the name of the fully connected layer
+func (l *FC) Name() string {
+	return l.name
+}
+
+// Describe will describe a fully connected layer
+func (l *FC) Describe() {
+	panic("STUB")
+}
 
 // methods to support extensions
 
+// ByName returns a Term by name
 func (l *FC) ByName(name string) Term {
 	if l.name == name {
 		return l
@@ -129,12 +147,19 @@ func (l *FC) ByName(name string) Term {
 
 func (l *FC) Graph() *G.ExprGraph { return l.w.Graph() }
 
+// SetName will set the name of a fully connected layer
 func (l *FC) SetName(a string) error { l.name = a; return nil }
 
+// SetSize will set the size of a fully connected layer
 func (l *FC) SetSize(a int) error { l.size = a; return nil }
 
-func (l *FC) SetAct(act func(*G.Node) (*G.Node, error)) error { l.act = act; return nil }
+// SetAct will set an activiation function of a fully connected layer
+func (l *FC) SetAct(act ActivationFunction) error {
+	l.act = act
+	return nil
+}
 
+// Init will initialize the fully connected layer
 func (l *FC) Init(xs ...*G.Node) (err error) {
 	x := xs[0]
 	g := x.Graph()
@@ -146,13 +171,12 @@ func (l *FC) Init(xs ...*G.Node) (err error) {
 		}
 	}
 	xshp := X.Shape()
-
 	l.w = G.NewMatrix(g, of, G.WithShape(xshp[1], l.size), G.WithInit(G.GlorotU(1)), G.WithName(l.name+"_W"))
 	switch {
 	case l.batched && !l.nobias:
 		l.b = G.NewMatrix(g, of, G.WithShape(1, l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
 	case !l.batched && !l.nobias:
-		l.b = G.NewMatrix(g, of, G.WithShape(xshp[0], xshp[1]), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
+		l.b = G.NewMatrix(g, of, G.WithShape(xshp[0], l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
 	}
 	l.initialized = true
 	return nil

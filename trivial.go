@@ -49,6 +49,11 @@ func (l reshape) Fwd(x G.Input) G.Result {
 	if err := G.CheckOne(x); err != nil {
 		return G.Err(err)
 	}
+	to := tensor.Shape(l)
+	n := x.Node()
+	if to.Eq(n.Shape()) {
+		return n
+	}
 	return G.LiftResult(gorgonia.Reshape(x.Node(), tensor.Shape(l)))
 }
 func (l reshape) Type() hm.Type       { return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('a')) }
