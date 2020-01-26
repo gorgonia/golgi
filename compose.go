@@ -143,7 +143,7 @@ func (l *Composition) ByName(name string) Term {
 	return nil
 }
 
-func (l *Composition) Graph() *ExprGraph {
+func (l *Composition) Graph() *G.ExprGraph {
 	if gp, ok := l.a.(Grapher); ok {
 		return gp.Graph()
 	}
