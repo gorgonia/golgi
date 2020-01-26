@@ -127,6 +127,8 @@ func (l *FC) ByName(name string) Term {
 	return nil
 }
 
+func (l *FC) Graph() *G.ExprGraph { return l.w.Graph() }
+
 func (l *FC) SetName(a string) error { l.name = a; return nil }
 
 func (l *FC) SetSize(a int) error { l.size = a; return nil }

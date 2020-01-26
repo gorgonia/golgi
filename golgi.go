@@ -13,6 +13,11 @@ type ByNamer interface {
 	ByName(name string) Term
 }
 
+// Grapher is any type that can return the underlying computational graph
+type Grapher interface {
+	Graph() *G.ExprGraph
+}
+
 // Layer represents a neural network layer.
 // λ
 type Layer interface {
