@@ -142,3 +142,13 @@ func (l *Composition) ByName(name string) Term {
 	}
 	return nil
 }
+
+func (l *Composition) Graph() *G.ExprGraph {
+	if gp, ok := l.a.(Grapher); ok {
+		return gp.Graph()
+	}
+	if gp, ok := l.b.(Grapher); ok {
+		return gp.Graph()
+	}
+	return nil
+}

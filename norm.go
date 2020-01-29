@@ -70,13 +70,16 @@ func (l *layerNorm) Fwd(a G.Input) G.Result {
 // ConsLayerNorm is a construction function for a layer normalization layer. `in` has to be at least a *gorgonia.Node
 func ConsLayerNorm(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	x := in.Node()
+
 	inshape := x.Shape()
 	if inshape.Dims() > 2 || inshape.Dims() == 0 {
 		return nil, errors.Errorf("Expected shape is either a vector or a matrix")
 	}
 
 	// construct
-	l := &layerNorm{}
+	l := &layerNorm{
+		eps: 1e-5,
+	}
 	for _, opt := range opts {
 		var o Layer
 		var ok bool

@@ -145,6 +145,8 @@ func (l *FC) ByName(name string) Term {
 	return nil
 }
 
+func (l *FC) Graph() *G.ExprGraph { return l.w.Graph() }
+
 // SetName will set the name of a fully connected layer
 func (l *FC) SetName(a string) error { l.name = a; return nil }
 
