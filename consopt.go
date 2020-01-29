@@ -2,6 +2,7 @@ package golgi
 
 import (
 	"github.com/pkg/errors"
+	G "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -151,5 +152,16 @@ func WithEps(eps float64) ConsOpt {
 			return layer, nil
 		}
 		return nil, errors.Errorf("WithEps Unhandled Layer type: %T", layer)
+	}
+}
+
+// WithConst is a construction option for the skip Layer
+func WithConst(c *G.Node) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		if a, ok := l.(*skip); ok {
+			a.b = c
+			return l, nil
+		}
+		return nil, errors.Errorf("WithConst expects a *skip. Got %T instead", l)
 	}
 }
