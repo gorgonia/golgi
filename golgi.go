@@ -6,6 +6,10 @@ import (
 	"gorgonia.org/tensor"
 )
 
+// ActivationFunction represents an activation function
+// Note: This may become an interface once we've worked through all the linter errors
+type ActivationFunction func(*G.Node) (*G.Node, error)
+
 // ByNamer is any type that allows a name to be found and returned.
 //
 // If a name is not found, `nil` is to be returned
