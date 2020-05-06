@@ -22,6 +22,11 @@ type Grapher interface {
 	Graph() *G.ExprGraph
 }
 
+// Data represents a layer's data. It is able to reconstruct a Layer and populating it.
+type Data interface {
+	Make(g *G.ExprGraph, name string) (Layer, error)
+}
+
 // Layer represents a neural network layer.
 // λ
 type Layer interface {
