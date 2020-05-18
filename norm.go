@@ -1,5 +1,3 @@
-// +build !cuda
-
 package golgi
 
 import (

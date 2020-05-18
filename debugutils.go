@@ -21,6 +21,7 @@ type Metadata struct {
 	Size         int
 	shape        tensor.Shape
 	ActivationFn ActivationFunction
+	InitWFn      G.InitWFn
 
 	//internal state
 	upd uint // counts the number of times the data structure has been updated.

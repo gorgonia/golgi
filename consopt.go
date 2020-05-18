@@ -86,6 +86,9 @@ func WithSize(size ...int) ConsOpt {
 		case *FC:
 			l.size = size[0]
 			return l, nil
+		case *Embedding:
+			l.dims = size[0]
+			return l, nil
 		case sizeSetter:
 			l.SetSize(size[0])
 			return layer, nil
@@ -97,6 +100,20 @@ func WithSize(size ...int) ConsOpt {
 		}
 
 		return nil, errors.Errorf("WithSize Unhandled Layer type: %T", layer)
+	}
+}
+
+// WithBatchSize creates a layer with a given batch size.
+func WithBatchSize(bs int) ConsOpt {
+	return func(layer Layer) (Layer, error) {
+		switch l := layer.(type) {
+		case *Embedding:
+			l.bs = bs
+			return l, nil
+		case Pass:
+			return layer, nil
+		}
+		return nil, errors.Errorf("WithBatchSize does not handle Layer type %T", layer)
 	}
 }
 
@@ -167,5 +184,22 @@ func WithConst(c *G.Node) ConsOpt {
 			return l, nil
 		}
 		return nil, errors.Errorf("WithConst expects a *skip. Got %T instead", l)
+	}
+}
+
+// WithWeights constructs a layer with the given weights.
+func WithWeights(w *G.Node) ConsOpt {
+	return func(layer Layer) (Layer, error) {
+		switch l := layer.(type) {
+		case *FC:
+			l.w = w
+			l.initialized = true
+		case *Embedding:
+			l.w = w
+			l.initialized = true
+		default:
+			return nil, errors.Errorf("WithWeights does not handle layer of type %T", layer)
+		}
+		return layer, nil
 	}
 }
