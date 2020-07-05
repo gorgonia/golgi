@@ -6,6 +6,10 @@ import (
 	"gorgonia.org/tensor"
 )
 
+// ActivationFunction represents an activation function
+// Note: This may become an interface once we've worked through all the linter errors
+type ActivationFunction func(*G.Node) (*G.Node, error)
+
 // ByNamer is any type that allows a name to be found and returned.
 //
 // If a name is not found, `nil` is to be returned
@@ -16,6 +20,11 @@ type ByNamer interface {
 // Grapher is any type that can return the underlying computational graph
 type Grapher interface {
 	Graph() *G.ExprGraph
+}
+
+// Data represents a layer's data. It is able to reconstruct a Layer and populating it.
+type Data interface {
+	Make(g *G.ExprGraph, name string) (Layer, error)
 }
 
 // Layer represents a neural network layer.

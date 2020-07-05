@@ -43,13 +43,17 @@ type FC struct {
 
 // MakeFC creates a FC with the given parameters
 func MakeFC(w, b *G.Node, act ActivationFunction, name string, batched bool) FC {
+	var initialized bool
+	if w != nil || b != nil {
+		initialized = true
+	}
 	return FC{
 		w:           w,
 		b:           b,
 		act:         act,
 		name:        name,
 		batched:     batched,
-		initialized: true,
+		initialized: initialized,
 	}
 }
 
@@ -63,7 +67,9 @@ func NewFC(opts ...ConsOpt) *FC {
 		}
 		retVal = l.(*FC)
 	}
-	retVal.initialized = true
+	if retVal.w != nil || retVal.b != nil {
+		retVal.initialized = true
+	}
 	return retVal
 }
 
@@ -87,6 +93,7 @@ func (l *FC) Fwd(a G.Input) G.Result {
 	if xw, err = G.Mul(x, l.w); err != nil {
 		return G.Err(err)
 	}
+	G.WithGroupName(l.name)(xw)
 
 	if l.b == nil {
 		xwb = xw
@@ -102,6 +109,7 @@ func (l *FC) Fwd(a G.Input) G.Result {
 			return G.Err(err)
 		}
 	}
+	G.WithGroupName(l.name)(xwb)
 act:
 	if l.act == nil {
 		return xwb
@@ -128,6 +136,9 @@ func (l *FC) Name() string {
 func (l *FC) Describe() {
 	panic("STUB")
 }
+
+// IsInitialized returns true if it has been initialized. This allows lazy initialization to be supported
+func (l *FC) IsInitialized() bool { return l.initialized }
 
 // methods to support extensions
 

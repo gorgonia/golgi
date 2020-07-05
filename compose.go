@@ -63,6 +63,7 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 		return l.retVal
 	}
 	input := a.Node()
+
 	var x G.Input
 	var layer Layer
 	var err error
@@ -80,6 +81,7 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	default:
 		return G.Err(errors.Errorf("Fwd of Composition not handled for a of %T", l.a))
 	}
+
 next:
 	if err != nil {
 		return G.Err(errors.Wrapf(err, "Happened while doing `a` of Composition %v", l))

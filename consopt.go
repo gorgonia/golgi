@@ -91,7 +91,11 @@ func WithSize(size ...int) ConsOpt {
 			return layer, nil
 		case Pass:
 			return layer, nil
+		case *LSTM:
+			l.size = size[0]
+			return l, nil
 		}
+
 		return nil, errors.Errorf("WithSize Unhandled Layer type: %T", layer)
 	}
 }
