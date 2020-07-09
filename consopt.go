@@ -30,6 +30,9 @@ func WithName(name string) ConsOpt {
 		case *FC:
 			l.name = name
 			return layer, nil
+		case *Embedding:
+			l.name = name
+			return layer, nil
 		case *layerNorm:
 			l.name = name
 			return layer, nil
@@ -136,6 +139,21 @@ func WithActivation(act ActivationFunction) ConsOpt {
 	}
 }
 
+func Of(dt tensor.Dtype) ConsOpt {
+	return func(layer Layer) (Layer, error) {
+		switch l := layer.(type) {
+		case *Embedding:
+			l.of = dt
+			return layer, nil
+		case Pass:
+			return layer, nil
+		default:
+
+			return nil, errors.Errorf("Of does not yet support Layer type %T", layer)
+		}
+	}
+}
+
 // ToShape is a ConsOpt for Reshape only.
 func ToShape(shp ...int) ConsOpt {
 	return func(layer Layer) (Layer, error) {
@@ -196,7 +214,8 @@ func WithWeights(w *G.Node) ConsOpt {
 			l.initialized = true
 		case *Embedding:
 			l.w = w
-			l.initialized = true
+			// l.initialized = true
+			// this cannot be true unless l.oh has been set.
 		default:
 			return nil, errors.Errorf("WithWeights does not handle layer of type %T", layer)
 		}

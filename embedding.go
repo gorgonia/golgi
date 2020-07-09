@@ -6,7 +6,6 @@ import (
 	G "gorgonia.org/gorgonia"
 	"gorgonia.org/qol"
 	"gorgonia.org/tensor"
-	"gorgonia.org/tensor/native"
 )
 
 // WithClasses is a construction option that specifies how many classes are there in the embedding layer.
@@ -20,6 +19,21 @@ func WithClasses(classes int) ConsOpt {
 			return layer, nil
 		default:
 			return nil, errors.Errorf("WithClasses is a construction option that only supports Embedding. %T is not supported", layer)
+		}
+	}
+}
+
+// WithOneHotInput is a construction option for a *Embedding that specifiess the behaviour to accept one-hot-vector/matrix as input.
+func WithOneHotInput() ConsOpt {
+	return func(layer Layer) (Layer, error) {
+		switch l := layer.(type) {
+		case *Embedding:
+			l.inputIsOneHot = true
+			return layer, nil
+		case Pass:
+			return layer, nil
+		default:
+			return nil, errors.Errorf("WithOneHotInput is a construction option that is only supported by Embedding. %T is not supported", layer)
 		}
 	}
 }
@@ -84,10 +98,16 @@ type Embedding struct {
 
 	// initialized
 	initialized bool
+
+	// of
+	of tensor.Dtype
 }
 
 func NewEmbedding(opts ...ConsOpt) *Embedding {
-	retVal := new(Embedding)
+	retVal := &Embedding{
+		of: tensor.Float64, // default
+	}
+
 	for _, opt := range opts {
 		l, err := opt(retVal)
 		if err != nil {
@@ -95,7 +115,7 @@ func NewEmbedding(opts ...ConsOpt) *Embedding {
 		}
 		retVal = l.(*Embedding)
 	}
-	if retVal.w != nil {
+	if retVal.w != nil && (retVal.inputIsOneHot && retVal.oh != nil) || retVal.inputIsOneHot {
 		retVal.initialized = true
 	}
 	return retVal
@@ -108,6 +128,13 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
 		return G.Err(errors.Wrapf(err, "Fwd of Embedding %v", l.name))
 	}
+	if !l.initialized {
+		if err := l.Init(a.Node()); err != nil {
+			return G.Err(errors.Wrapf(err, "lazy initialization of %v failed", l.name))
+		}
+		l.initialized = true
+	}
+
 	shp := a.Node().Shape()
 	if shp.Dims() > 2 {
 		// error or reshape?
@@ -123,7 +150,7 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 	oh := a.Node()
 	if !l.inputIsOneHot {
 		oh = l.oh
-		l.setOH(a.Node())
+		l.Run(a.Node())
 	}
 
 	retVal, err := G.Mul(oh, l.w)
@@ -164,9 +191,11 @@ func (l *Embedding) IsInitialized() bool { return l.initialized }
 func (l *Embedding) Init(xs ...*G.Node) (err error) {
 	x := xs[0]
 	g := x.Graph()
-	of := x.Dtype()
+	of := l.of
 	xshp := x.Shape()
-	l.w = G.NewMatrix(g, of, G.WithShape(xshp[1], l.dims), G.WithInit(G.GlorotN(1)), G.WithName(l.name))
+	if l.w == nil {
+		l.w = G.NewMatrix(g, of, G.WithShape(l.classes, l.dims), G.WithInit(G.GlorotN(1)), G.WithName(l.name))
+	}
 
 	if !l.inputIsOneHot {
 		// we need to construct the one-hot matrix as well
@@ -199,30 +228,14 @@ func ConsEmbedding(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	return l, nil
 }
 
-// setOH is a function that sets the internal one hot vector/matrix
-func (l *Embedding) setOH(a *G.Node) (err error) {
+// Run is a function that sets the internal one hot vector/matrix
+func (l *Embedding) Run(a *G.Node) (err error) {
 	T := a.Value().(*tensor.Dense)
-	shp := T.Shape()
-	T.Reshape(T.Shape().TotalSize())
-	defer T.Reshape(shp...)
 
 	var vec interface{}
-	vec, err = native.Vector(T)
-	if err != nil {
-		return errors.Wrap(err, "Unable to set OneHot vector/matrix")
-	}
+	vec = T.Data()
 
 	oh := l.oh.Value().(*tensor.Dense)
-
-	// check shapes
-	if oh.Shape().TotalSize() != T.Shape().TotalSize() {
-		return errors.Errorf("Expected internal onehot vector/matrix to be %d. Got %d instead", T.Shape().TotalSize(), oh.Shape().TotalSize())
-	}
-
-	// reshape if necesary
-	last := shp[len(shp)-1]
-	newShape := tensor.Shape{oh.Shape().TotalSize() / last, last}
-	oh.Reshape(newShape...)
 
 	var classes []qol.Class
 	switch v := vec.(type) {
@@ -250,5 +263,6 @@ func (l *Embedding) setOH(a *G.Node) (err error) {
 		}
 	}
 	G.Let(l.oh, qol.UnsafeToOneHotMatrix(classes, uint(l.classes), oh))
+
 	return nil
 }
