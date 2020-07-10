@@ -106,6 +106,7 @@ type Embedding struct {
 func NewEmbedding(opts ...ConsOpt) *Embedding {
 	retVal := &Embedding{
 		of: tensor.Float64, // default
+		bs: 1,
 	}
 
 	for _, opt := range opts {
@@ -117,6 +118,9 @@ func NewEmbedding(opts ...ConsOpt) *Embedding {
 	}
 	if retVal.w != nil && (retVal.inputIsOneHot && retVal.oh != nil) || retVal.inputIsOneHot {
 		retVal.initialized = true
+	}
+	if retVal.bs < 1 {
+		retVal.bs = 1
 	}
 	return retVal
 }
@@ -141,13 +145,9 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 		// error for now:
 		return G.Err(errors.Errorf("Cannot accept input of shape %v in Embedding", shp))
 	}
-	if shp[0] != l.bs {
-		// error for now - in the next version of Gorgonia nodes are much lighter weight so we can fix this
-		// TODO: FUTURE.
-		return G.Err(errors.Errorf("Expected input to have batch size of %v. Got %v instead.", l.bs, shp[0]))
-	}
 
 	oh := a.Node()
+
 	if !l.inputIsOneHot {
 		oh = l.oh
 		l.Run(a.Node())
@@ -162,7 +162,7 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 		switch shp.Dims() {
 		case 2:
 			// reshape result to (bs, dims)
-			retVal, err = G.Reshape(retVal, tensor.Shape{l.bs, l.dims})
+			retVal, err = G.Reshape(retVal, tensor.Shape{shp[0], shp[1], l.dims})
 			if err != nil {
 				return G.Err(errors.Wrapf(err, "Failed to reshape retVal  to (%v, %v)", l.bs, l.dims))
 			}
@@ -192,14 +192,14 @@ func (l *Embedding) Init(xs ...*G.Node) (err error) {
 	x := xs[0]
 	g := x.Graph()
 	of := l.of
-	xshp := x.Shape()
+
 	if l.w == nil {
 		l.w = G.NewMatrix(g, of, G.WithShape(l.classes, l.dims), G.WithInit(G.GlorotN(1)), G.WithName(l.name))
 	}
 
 	if !l.inputIsOneHot {
 		// we need to construct the one-hot matrix as well
-		l.oh = G.NewMatrix(g, of, G.WithShape(xshp[0], l.classes), G.WithInit(G.Zeroes()), G.WithName(l.name+"dummy-1hot"))
+		l.oh = G.NewMatrix(g, of, G.WithShape(l.bs, l.classes), G.WithInit(G.Zeroes()), G.WithName(l.name+"dummy-1hot"))
 	}
 	return nil
 }
