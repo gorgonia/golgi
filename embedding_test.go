@@ -82,7 +82,7 @@ func ExampleEmbedding_2() {
 		N         = 13
 		dims      = 50
 		sentence  = 10
-		batchSize = 10
+		batchSize = 17
 	)
 	g := G.NewGraph()
 	x := G.NewMatrix(g, qol.ClassType(), G.WithShape(batchSize, sentence), G.WithInit(G.Zeroes()), G.WithName("sentence")) // WithInit or WithValue is required.
@@ -145,7 +145,7 @@ func ExampleEmbedding_2() {
 	testFn(mat2, "mat2")
 
 	// Output:
-	// sel1: (10, 10, 50)
-	// sel2: (10, 10, 50)
+	// sel1: (17, 10, 50)
+	// sel2: (17, 10, 50)
 
 }
