@@ -60,61 +60,25 @@ func (l *Join) Fwd(a G.Input) (output G.Result) {
 	}
 	input := a.Node()
 
-	// run A
-	var x G.Input
-	var layer Layer
-	var err error
-	switch at := l.a.(type) {
-	case *G.Node:
-		x = at
-	case consThunk:
-		if layer, err = at.LayerCons(input, at.Opts...); err != nil {
-			goto next
-		}
-		l.a = layer
-		x = layer.Fwd(input)
-	case Layer:
-		x = at.Fwd(input)
-	default:
-		return G.Err(errors.Errorf("Fwd of Composition not handled for a of %T", l.a))
-	}
-next:
-
+	x, err := Apply(l.a, input)
 	if err != nil {
-		return G.Err(errors.Wrapf(err, "Happened while doing `a` of Composition %v", l))
+		return G.Err(errors.Wrapf(err, "Forward of Join %v - Applying %v to %v failed", l.Name(), l.a, input.Name()))
+	}
+	xn, ok := x.(*G.Node)
+	if !ok {
+		return G.Err(errors.Errorf("Expected the result of applying %v to %v to return a *Node. Got %v of %T instead", l.a, input.Name(), x, x))
 	}
 
-	// run b
-	var y G.Input
-	switch bt := l.b.(type) {
-	case *G.Node:
-		y = bt
-	case consThunk:
-		if layer, err = bt.LayerCons(input, bt.Opts...); err != nil {
-			return G.Err(errors.Wrapf(err, "Happned while calling the thunk of `b` of Join %v", l))
-		}
-		l.b = layer
-		y = layer.Fwd(input)
-	case Layer:
-		y = bt.Fwd(input)
-	default:
-		return G.Err(errors.Errorf("Fwd of Join not handled for `b` of %T", l.b))
+	y, err := Apply(l.b, input)
+	if err != nil {
+		return G.Err(errors.Wrapf(err, "Forward of Join %v - Applying %v to %v failed", l.Name(), l.b, input.Name()))
 	}
-
-	// check the results of a and b
-
-	if err = G.CheckOne(x); err != nil {
-		return G.Err(errors.Wrapf(err, "`a` of Join %v returned an error", l))
-	}
-
-	if err = G.CheckOne(y); err != nil {
-		return G.Err(errors.Wrapf(err, "`b` of Join %v returned an error", l))
+	yn, ok := y.(*G.Node)
+	if !ok {
+		return G.Err(errors.Errorf("Expected the result of applying %v to %v to return a *Node. Got %v of %T instead", l.a, input.Name(), y, y))
 	}
 
 	// perform the op
-
-	xn := x.Node()
-	yn := y.Node()
 
 	switch l.op {
 	case addOp:

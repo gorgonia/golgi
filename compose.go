@@ -84,22 +84,17 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	}
 	switch yt := y.(type) {
 	case tag:
-		l.b = t.a.(Layer)
-		retVal, ok := t.b.(*G.Node)
+		l.b = yt.a.(Layer)
+		retVal, ok := yt.b.(*G.Node)
 		if !ok {
-			return G.Err(errors.Errorf("Error while forwarding Composition where layer is returned. Expected the result of a application to be a *Node. Got %v of %T instead", t.b))
+			return G.Err(errors.Errorf("Error while forwarding Composition where layer is returned. Expected the result of a application to be a *Node. Got %v of %T instead", yt.b, yt.b))
 		}
+		return retVal
 	case *G.Node:
 		return yt
 	default:
-		return G.Err(errors.Errorf("Error while forwarding Composition. Expected the result of a application to be a *Node. Got %v of %T instead", t.b))
+		return G.Err(errors.Errorf("Error while forwarding Composition. Expected the result of a application to be a *Node. Got %v of %T instead", yt, yt))
 	}
-
-	yn, ok := y.(*G.Node)
-	if !ok {
-		return G.Err(errors.Errorf("expected a Node. Got %v of %T instead", y, y))
-	}
-	return yn
 
 }
 
@@ -119,8 +114,15 @@ func (l *Composition) Describe() { panic("STUB") }
 
 // ByName returns a Term by name
 func (l *Composition) ByName(name string) Term {
+	if l.a == nil {
+		goto next
+	}
 	if l.a.Name() == name {
 		return l.a
+	}
+next:
+	if l.b == nil {
+		return nil
 	}
 	if l.b.Name() == name {
 		return l.b
