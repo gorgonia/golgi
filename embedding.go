@@ -1,7 +1,6 @@
 package golgi
 
 import (
-	"github.com/chewxy/hm"
 	"github.com/pkg/errors"
 	G "gorgonia.org/gorgonia"
 	"gorgonia.org/qol"
@@ -103,6 +102,7 @@ type Embedding struct {
 	of tensor.Dtype
 }
 
+// NewEmbedding creates a new embedding layer.
 func NewEmbedding(opts ...ConsOpt) *Embedding {
 	retVal := &Embedding{
 		of: tensor.Float64, // default
@@ -177,13 +177,7 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 
 func (l *Embedding) Name() string { return l.name }
 
-func (l *Embedding) Shape() tensor.Shape { panic("NYi") }
-
-func (l *Embedding) Type() hm.Type { panic("NYI") }
-
 func (l *Embedding) Describe() {}
-
-func (l *Embedding) Graph() *G.ExprGraph { return l.w.Graph() }
 
 func (l *Embedding) IsInitialized() bool { return l.initialized }
 
@@ -228,8 +222,15 @@ func ConsEmbedding(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	return l, nil
 }
 
+// Graph returns the underlying computation graph. Embedding implements Grapher.
+func (l *Embedding) Graph() *G.ExprGraph { return l.w.Graph() }
+
 // Run is a function that sets the internal one hot vector/matrix
-func (l *Embedding) Run(a *G.Node) (err error) {
+func (l *Embedding) Run(input G.Input) (err error) {
+	if err := G.CheckOne(input); err != nil {
+		return G.Err(errors.Wrapf(err, "Failed to run Embedding %v", l.name))
+	}
+	a := input.Node()
 	T := a.Value().(*tensor.Dense)
 
 	var vec interface{}
@@ -266,3 +267,6 @@ func (l *Embedding) Run(a *G.Node) (err error) {
 
 	return nil
 }
+
+// Runners returns the embedding itself
+func (l *Embedding) Runners() []Runner { return []Runner{l} }

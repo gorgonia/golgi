@@ -13,7 +13,9 @@ var (
 	_ Layer = (*Composition)(nil)
 )
 
-// Composition represents a composition of functions
+// Composition (∘) represents a composition of functions.
+//
+// The semantics of ∘(a, b)(x) is b(a(x)).
 type Composition struct {
 	a, b Term // can be thunk, Layer or *G.Node
 
@@ -24,11 +26,14 @@ type Composition struct {
 }
 
 // Compose creates a composition of terms.
-func Compose(a, b Term) (retVal *Composition, err error) {
+func Compose(a, b Term) (retVal *Composition) {
+	if _, ok := a.(*G.Node); ok {
+		a = nil
+	}
 	return &Composition{
 		a: a,
 		b: b,
-	}, nil
+	}
 }
 
 // ComposeSeq creates a composition with the inputs written in left to right order
@@ -46,9 +51,7 @@ func ComposeSeq(layers ...Term) (retVal *Composition, err error) {
 	}
 	l := layers[0]
 	for _, next := range layers[1:] {
-		if l, err = Compose(l, next); err != nil {
-			return nil, err
-		}
+		l = Compose(l, next)
 	}
 	return l.(*Composition), nil
 }
@@ -64,44 +67,40 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	}
 	input := a.Node()
 
-	var x G.Input
-	var layer Layer
-	var err error
-	switch at := l.a.(type) {
-	case *G.Node:
-		x = at
-	case consThunk:
-		if layer, err = at.LayerCons(input, at.Opts...); err != nil {
-			goto next
-		}
-		l.a = layer
-		x = layer.Fwd(input)
-	case Layer:
-		x = at.Fwd(input)
-	default:
-		return G.Err(errors.Errorf("Fwd of Composition not handled for a of %T", l.a))
-	}
-
-next:
+	// apply a to input
+	x, err := Apply(l.a, input)
 	if err != nil {
-		return G.Err(errors.Wrapf(err, "Happened while doing `a` of Composition %v", l))
+		return G.Err(errors.Wrapf(err, "Forward of Composition %v (a)", l.Name()))
+	}
+	if t, ok := x.(tag); ok {
+		l.a = t.a.(Layer)
+		x = t.b
 	}
 
-	switch bt := l.b.(type) {
-	case *G.Node:
-		return G.Err(errors.New("Cannot Fwd when b is a *Node"))
-	case consThunk:
-		if layer, err = bt.LayerCons(x.Node(), bt.Opts...); err != nil {
-			return G.Err(errors.Wrapf(err, "Happened while calling the thunk of `b` of Composition %v", l))
-		}
-		l.b = layer
-		output = layer.Fwd(x)
-	case Layer:
-		output = bt.Fwd(x)
-	default:
-		return G.Err(errors.Errorf("Fwd of Composition not handled for `b` of %T", l.b))
+	// apply b to the result
+	y, err := Apply(l.b, x)
+	if err != nil {
+		return G.Err(errors.Wrapf(err, "Forward of Composition %v (b)", l.Name()))
 	}
-	return
+	switch yt := y.(type) {
+	case tag:
+		l.b = t.a.(Layer)
+		retVal, ok := t.b.(*G.Node)
+		if !ok {
+			return G.Err(errors.Errorf("Error while forwarding Composition where layer is returned. Expected the result of a application to be a *Node. Got %v of %T instead", t.b))
+		}
+	case *G.Node:
+		return yt
+	default:
+		return G.Err(errors.Errorf("Error while forwarding Composition. Expected the result of a application to be a *Node. Got %v of %T instead", t.b))
+	}
+
+	yn, ok := y.(*G.Node)
+	if !ok {
+		return G.Err(errors.Errorf("expected a Node. Got %v of %T instead", y, y))
+	}
+	return yn
+
 }
 
 // Model will return the gorgonia.Nodes associated with this composition
@@ -111,12 +110,6 @@ func (l *Composition) Model() (retVal G.Nodes) {
 	}
 	return l.b.(Layer).Model()
 }
-
-// Type will return the hm.Type of the composition
-func (l *Composition) Type() hm.Type { return l.retType }
-
-// Shape will return the tensor.Shape of the composition
-func (l *Composition) Shape() tensor.Shape { return l.retShape }
 
 // Name will return the name of the composition
 func (l *Composition) Name() string { return fmt.Sprintf("%v ∘ %v", l.b, l.a) }
@@ -153,4 +146,15 @@ func (l *Composition) Graph() *G.ExprGraph {
 		return gp.Graph()
 	}
 	return nil
+}
+
+func (l *Composition) Runners() []Runner {
+	var retVal []Runner
+	if f, ok := l.a.(Runnerser); ok {
+		retVal = append(retVal, f.Runners()...)
+	}
+	if f, ok := l.b.(Runnerser); ok {
+		retVal = append(retVal, f.Runners()...)
+	}
+	return retVal
 }

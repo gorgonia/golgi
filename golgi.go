@@ -1,9 +1,8 @@
 package golgi
 
 import (
-	"github.com/chewxy/hm"
+	"github.com/pkg/errors"
 	G "gorgonia.org/gorgonia"
-	"gorgonia.org/tensor"
 )
 
 // ActivationFunction represents an activation function
@@ -27,6 +26,21 @@ type Data interface {
 	Make(g *G.ExprGraph, name string) (Layer, error)
 }
 
+// Runner is a kind of layer that requires outside-the-graph manipulation.
+type Runner interface {
+	Run(a G.Input) error
+
+	// Runners should return themselves
+	Runnerser
+}
+
+// Runnerser is any kind of layer that gets a slice of Runners.
+//
+// For simplicity, all Runners should implement Runnerser
+type Runnerser interface {
+	Runners() []Runner
+}
+
 // Layer represents a neural network layer.
 // λ
 type Layer interface {
@@ -40,10 +54,6 @@ type Layer interface {
 	// meta stuff. This stuff is just placholder for more advanced things coming
 
 	Term
-
-	Type() hm.Type
-
-	Shape() tensor.Shape
 
 	// Serialization stuff
 
@@ -62,7 +72,41 @@ func Redefine(l Layer, opts ...ConsOpt) (retVal Layer, err error) {
 }
 
 // Apply will apply two terms and return the resulting term
-// Note: This has not yet been implemented, please do not use!
+// Apply(a, b) has the semantics of a(b).
 func Apply(a, b Term) (Term, error) {
-	panic("STUBBED")
+	var layer Layer
+	var retTag bool
+	var err error
+	switch at := a.(type) {
+	case consThunk:
+		bInput, ok := b.(G.Input)
+		if !ok {
+			return nil, errors.Errorf("Applying %v to %v. b is of %T", a, b, b)
+		}
+		if layer, err = at.LayerCons(bInput, at.Opts...); err != nil {
+			return nil, errors.Wrap(err, "Unable to construct layer `a` while calling Apply")
+		}
+		retTag = true
+	case Layer:
+		layer = at
+	case nil:
+		layer = nil
+	}
+
+	switch bt := b.(type) {
+	case *G.Node:
+		if layer == nil {
+			return bt, nil
+		}
+		retVal := layer.Fwd(bt)
+		if err = G.CheckOne(retVal); err != nil {
+			return nil, errors.Wrap(err, "Apply failed")
+		}
+		if retTag {
+			return tag{layer, retVal.Node()}, nil
+		}
+		return retVal.Node(), nil
+	default:
+		return Compose(b, layer), nil // hmmmmmm this is technically called "stuck". Maybe error?
+	}
 }
