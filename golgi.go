@@ -74,6 +74,11 @@ func Redefine(l Layer, opts ...ConsOpt) (retVal Layer, err error) {
 // Apply will apply two terms and return the resulting term
 // Apply(a, b) has the semantics of a(b).
 func Apply(a, b Term) (Term, error) {
+	leaveLogScope()
+	logf("Apply %v to %v", a.Name(), b.Name())
+	enterLogScope()
+	defer leaveLogScope()
+
 	var layer Layer
 	var retTag bool
 	var err error
@@ -89,23 +94,24 @@ func Apply(a, b Term) (Term, error) {
 		retTag = true
 	case Layer:
 		layer = at
-	case nil:
-		layer = nil
+	case I:
+		layer = nil // identity, return b
 	}
 
 	switch bt := b.(type) {
-	case *G.Node:
+	case G.Input:
 		if layer == nil {
-			return bt, nil
+			return b, nil
 		}
+
 		retVal := layer.Fwd(bt)
 		if err = G.CheckOne(retVal); err != nil {
 			return nil, errors.Wrap(err, "Apply failed")
 		}
 		if retTag {
-			return tag{layer, retVal.Node()}, nil
+			return tag{layer, retVal.(Term)}, nil
 		}
-		return retVal.Node(), nil
+		return retVal.(Term), nil
 	default:
 		return Compose(b, layer), nil // hmmmmmm this is technically called "stuck". Maybe error?
 	}

@@ -1,6 +1,8 @@
 package golgi
 
 import (
+	"fmt"
+
 	"github.com/chewxy/hm"
 	"gorgonia.org/gorgonia"
 	G "gorgonia.org/gorgonia"
@@ -58,7 +60,7 @@ func (l reshape) Fwd(x G.Input) G.Result {
 }
 func (l reshape) Type() hm.Type       { return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('a')) }
 func (l reshape) Shape() tensor.Shape { return tensor.Shape(l) }
-func (l reshape) Name() string        { return "" }
+func (l reshape) Name() string        { return fmt.Sprintf("Reshape%v", tensor.Shape(l)) }
 func (l reshape) Describe()           {}
 func (l reshape) unnamed()            {}
 
@@ -84,6 +86,6 @@ func (l dropout) Fwd(x G.Input) G.Result {
 }
 func (l dropout) Type() hm.Type       { return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('a')) }
 func (l dropout) Shape() tensor.Shape { panic("not implemented") }
-func (l dropout) Name() string        { return "" }
+func (l dropout) Name() string        { return fmt.Sprintf("Dropout(%v)", float64(l)) }
 func (l dropout) Describe()           {}
 func (l dropout) unnamed()            {}

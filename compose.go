@@ -20,15 +20,15 @@ type Composition struct {
 	a, b Term // can be thunk, Layer or *G.Node
 
 	// store returns
-	retVal   *G.Node
+	retVal   G.Result
 	retType  hm.Type
 	retShape tensor.Shape
 }
 
 // Compose creates a composition of terms.
 func Compose(a, b Term) (retVal *Composition) {
-	if _, ok := a.(*G.Node); ok {
-		a = nil
+	if _, ok := a.(G.Input); ok {
+		a = I{}
 	}
 	return &Composition{
 		a: a,
@@ -65,6 +65,9 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	if l.retVal != nil {
 		return l.retVal
 	}
+	logf("Compose %v and %v", l.a.Name(), a)
+	enterLogScope()
+	defer leaveLogScope()
 	input := a.Node()
 
 	// apply a to input
@@ -85,15 +88,17 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	switch yt := y.(type) {
 	case tag:
 		l.b = yt.a.(Layer)
-		retVal, ok := yt.b.(*G.Node)
+		retVal, ok := yt.b.(G.Result)
 		if !ok {
-			return G.Err(errors.Errorf("Error while forwarding Composition where layer is returned. Expected the result of a application to be a *Node. Got %v of %T instead", yt.b, yt.b))
+			return G.Err(errors.Errorf("Error while forwarding Composition where layer is returned. Expected the result of a application to be a Result. Got %v of %T instead", yt.b, yt.b))
 		}
+		l.retVal = retVal
 		return retVal
-	case *G.Node:
+	case G.Result:
+		l.retVal = yt
 		return yt
 	default:
-		return G.Err(errors.Errorf("Error while forwarding Composition. Expected the result of a application to be a *Node. Got %v of %T instead", yt, yt))
+		return G.Err(errors.Errorf("Error while forwarding Composition. Expected the result of a application to be a Result. Got %v of %T instead", y, y))
 	}
 
 }
@@ -107,7 +112,13 @@ func (l *Composition) Model() (retVal G.Nodes) {
 }
 
 // Name will return the name of the composition
-func (l *Composition) Name() string { return fmt.Sprintf("%v ∘ %v", l.b, l.a) }
+func (l *Composition) Name() string {
+	aname := "x"
+	if l.a != nil {
+		aname = l.a.Name()
+	}
+	return fmt.Sprintf("%v ∘ %v", l.b.Name(), aname)
+}
 
 // Describe will describe a composition
 func (l *Composition) Describe() { panic("STUB") }

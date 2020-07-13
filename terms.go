@@ -111,3 +111,7 @@ func (e *Env) Name() string {
 type tag struct{ a, b Term }
 
 func (t tag) Name() string { return fmt.Sprintf("%v@%v", t.a.Name(), t.b.Name()) }
+
+type I struct{}
+
+func (i I) Name() string { return "I" }
