@@ -21,6 +21,10 @@ type actSetter interface {
 	SetActivationFn(act ActivationFunction) error
 }
 
+type dropoutConfiger interface {
+	SetDropout(prob float64) error
+}
+
 // WithName creates a layer that is named.
 //
 // If the layer is unnameable (i.e. trivial layers), then there is no effect.
@@ -170,9 +174,15 @@ func ToShape(shp ...int) ConsOpt {
 // WithProbability is a ConsOpt for Dropout only.
 func WithProbability(prob float64) ConsOpt {
 	return func(layer Layer) (Layer, error) {
-		switch layer.(type) {
+		switch l := layer.(type) {
 		case dropout:
 			return dropout(prob), nil
+		case dropoutConfiger:
+			err := l.SetDropout(prob)
+			if err != nil {
+				return nil, err
+			}
+			return layer, nil
 		case Pass:
 			return layer, nil
 		}

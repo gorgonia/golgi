@@ -243,22 +243,22 @@ func (l *Embedding) Run(input G.Input) (err error) {
 	case []qol.Class:
 		classes = v
 	case []uint:
-		classes := make([]qol.Class, len(v))
+		classes = make([]qol.Class, len(v))
 		for i := range classes {
 			classes[i] = qol.Class(v[i])
 		}
 	case []int:
-		classes := make([]qol.Class, len(v))
+		classes = make([]qol.Class, len(v))
 		for i := range classes {
 			classes[i] = qol.Class(v[i])
 		}
 	case []float32:
-		classes := make([]qol.Class, len(v))
+		classes = make([]qol.Class, len(v))
 		for i := range classes {
 			classes[i] = qol.Class(v[i])
 		}
 	case []float64:
-		classes := make([]qol.Class, len(v))
+		classes = make([]qol.Class, len(v))
 		for i := range classes {
 			classes[i] = qol.Class(v[i])
 		}
