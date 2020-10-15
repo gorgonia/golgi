@@ -250,3 +250,59 @@ func WithWeights(w *G.Node) ConsOpt {
 		return layer, nil
 	}
 }
+
+// WithKernelShape sets the kernel shape of the layer
+func WithKernelShape(s tensor.Shape) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.kernelShape = s
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting kernel shape is not supported by this layer")
+	}
+}
+
+// WithPad sets the pad of the layer
+func WithPad(p []int) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.pad = p
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting pad is not supported by this layer")
+	}
+}
+
+// WithStride sets the stride of the layer
+func WithStride(s []int) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.stride = s
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting stride is not supported by this layer")
+	}
+}
+
+// WithDilation sets the dilation of the layer
+func WithDilation(s []int) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.dilation = s
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting dilation is not supported by this layer")
+	}
+}

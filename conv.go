@@ -18,15 +18,23 @@ func ConsConv(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	}
 
 	inshape := x.Shape()
-	if inshape.Dims() > 2 || inshape.Dims() == 0 {
-		return nil, fmt.Errorf("Expected shape is either a vector or a matrix")
+	if inshape.Dims() != 2 || inshape.Dims() == 0 {
+		return nil, fmt.Errorf("Expected shape is a matrix")
 	}
 
-	l := &Conv{}
+	l := &Conv{
+		act:         gorgonia.Rectify,
+		kernelShape: tensor.Shape{5, 5},
+		pad:         []int{1, 1},
+		stride:      []int{1, 1},
+		dilation:    []int{1, 1},
+	}
 
 	for _, opt := range opts {
-		var o Layer
-		var ok bool
+		var (
+			o  Layer
+			ok bool
+		)
 
 		if o, err = opt(l); err != nil {
 			return nil, err
@@ -80,30 +88,6 @@ type Conv struct {
 	act ActivationFunction
 
 	initialized bool
-}
-
-// SetKernelShape sets the kernel shape of the layer
-func (l *Conv) SetKernelShape(s tensor.Shape) error {
-	l.kernelShape = s
-	return nil
-}
-
-// SetPad sets the pad of the layer
-func (l *Conv) SetPad(p []int) error {
-	l.pad = p
-	return nil
-}
-
-// SetStride sets the stride of the layer
-func (l *Conv) SetStride(s []int) error {
-	l.stride = s
-	return nil
-}
-
-// SetDilation sets the dilation of the layer
-func (l *Conv) SetDilation(s []int) error {
-	l.dilation = s
-	return nil
 }
 
 // SetDropout sets the dropout of the layer
