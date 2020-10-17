@@ -18,7 +18,7 @@ func ConsConv(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	}
 
 	inshape := x.Shape()
-	if inshape.Dims() > 4 || inshape.Dims() == 0 {
+	if inshape.Dims() != 4 || inshape.Dims() == 0 {
 		return nil, fmt.Errorf("Expected shape is either a vector or a matrix, got %v", inshape)
 	}
 
@@ -59,7 +59,7 @@ func (l *Conv) Init(xs ...*gorgonia.Node) (err error) {
 	g := x.Graph()
 	of := x.Dtype()
 
-	l.w = gorgonia.NewTensor(g, of, 4, gorgonia.WithShape(l.size, 3, l.kernelShape[0], l.kernelShape[1]), gorgonia.WithName("w"), gorgonia.WithInit(gorgonia.GlorotN(1.0)))
+	l.w = gorgonia.NewTensor(g, of, 4, gorgonia.WithShape(l.size[0], l.size[1], l.kernelShape[0], l.kernelShape[1]), gorgonia.WithName("w"), gorgonia.WithInit(gorgonia.GlorotN(1.0)))
 
 	l.initialized = true
 
@@ -71,7 +71,7 @@ type Conv struct {
 	w *gorgonia.Node
 
 	name string
-	size int
+	size []int
 
 	kernelShape           tensor.Shape
 	pad, stride, dilation []int
@@ -91,7 +91,7 @@ func (l *Conv) SetDropout(d float64) error {
 }
 
 // SetSize sets the size of the layer
-func (l *Conv) SetSize(s int) error {
+func (l *Conv) SetSize(s ...int) error {
 	l.size = s
 	return nil
 }
@@ -118,25 +118,27 @@ func (l *Conv) Model() gorgonia.Nodes {
 // Fwd runs the equation forwards
 func (l *Conv) Fwd(x gorgonia.Input) gorgonia.Result {
 	if err := gorgonia.CheckOne(x); err != nil {
-		return gorgonia.Err(fmt.Errorf("Fwd of Conv %v: %w", l.name, err))
+		return wrapErr(l, "checking input: %w", err)
 	}
 
 	c, err := gorgonia.Conv2d(x.Node(), l.w, l.kernelShape, l.pad, l.stride, l.dilation)
 	if err != nil {
-		return gorgonia.Err(err)
+		return wrapErr(l, "applying conv2d %v %v: %w", x.Node().Shape(), l.w.Shape(), err)
 	}
 
 	result, err := l.act(c)
 	if err != nil {
-		return gorgonia.Err(err)
+		return wrapErr(l, "applying activation function: %w", err)
 	}
 
 	if l.dropout != nil {
 		result, err = gorgonia.Dropout(result, *l.dropout)
 		if err != nil {
-			return gorgonia.Err(err)
+			return wrapErr(l, "applying dropout: %w", err)
 		}
 	}
+
+	logf("%T shape %s: %v", l, l.name, result.Shape())
 
 	return result
 }
@@ -148,7 +150,7 @@ func (l *Conv) Type() hm.Type {
 
 // Shape will return the tensor.Shape of the convolution layer
 func (l *Conv) Shape() tensor.Shape {
-	return l.w.Shape() // is this correct?
+	return l.w.Shape()
 }
 
 // Name will return the name of the convolution layer
@@ -162,8 +164,8 @@ func (l *Conv) Describe() {
 }
 
 var (
-	_ sizeSetter      = &Conv{}
 	_ namesetter      = &Conv{}
 	_ actSetter       = &Conv{}
 	_ dropoutConfiger = &Conv{}
+	_ Term            = &Conv{}
 )

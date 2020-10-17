@@ -18,7 +18,7 @@ func ConsMaxPool(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	}
 
 	inshape := x.Shape()
-	if inshape.Dims() != 2 || inshape.Dims() == 0 {
+	if inshape.Dims() != 4 || inshape.Dims() == 0 {
 		return nil, fmt.Errorf("Expected shape is a matrix")
 	}
 
@@ -103,7 +103,7 @@ func (l *MaxPool) Fwd(x gorgonia.Input) gorgonia.Result {
 
 	result, err := gorgonia.MaxPool2D(x.Node(), l.kernelShape, l.pad, l.stride)
 	if err != nil {
-		return gorgonia.Err(err)
+		return wrapErr(l, "applying max pool to %v: %w", x.Node().Shape(), err)
 	}
 
 	if l.dropout != nil {
@@ -112,6 +112,8 @@ func (l *MaxPool) Fwd(x gorgonia.Input) gorgonia.Result {
 			return gorgonia.Err(err)
 		}
 	}
+
+	logf("%T shape %s: %v", l, l.name, result.Shape())
 
 	return result
 }

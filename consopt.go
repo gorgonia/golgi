@@ -46,7 +46,6 @@ func WithName(name string) ConsOpt {
 			l.name = name
 			return layer, nil
 		case *LSTM:
-		case *Conv:
 		case unnameable:
 			return layer, nil
 		case namesetter:
@@ -105,6 +104,9 @@ func WithSize(size ...int) ConsOpt {
 			l.SetSize(size[0])
 			return layer, nil
 		case Pass:
+			return layer, nil
+		case *Conv:
+			l.SetSize(size...)
 			return layer, nil
 		case *LSTM:
 			l.size = size[0]
@@ -246,9 +248,13 @@ func WithKernelShape(s tensor.Shape) ConsOpt {
 			c.kernelShape = s
 
 			return c, nil
+		case *MaxPool:
+			c.kernelShape = s
+
+			return c, nil
 		}
 
-		return nil, fmt.Errorf("Setting kernel shape is not supported by this layer")
+		return nil, fmt.Errorf("Setting kernel shape is not supported by this layer: %T", l)
 	}
 }
 
