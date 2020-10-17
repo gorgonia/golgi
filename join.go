@@ -17,7 +17,7 @@ const (
 	elMulOp
 )
 
-// Joins are generalized compositions.
+// Join joins are generalized compositions.
 type Join struct {
 	Composition
 	op joinOp

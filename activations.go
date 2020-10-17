@@ -4,7 +4,6 @@ import (
 	"math"
 
 	"github.com/chewxy/math32"
-	"gorgonia.org/gorgonia"
 	G "gorgonia.org/gorgonia"
 )
 
@@ -84,5 +83,5 @@ func GeLUFn(a *G.Node) (*G.Node, error) {
 
 // SoftMaxFn implements softmax without axis
 func SoftMaxFn(a *G.Node) (*G.Node, error) {
-	return gorgonia.SoftMax(a)
+	return G.SoftMax(a)
 }

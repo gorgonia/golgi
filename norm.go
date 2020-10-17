@@ -99,6 +99,9 @@ func ConsLayerNorm(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	X := x
 	if x.IsVec() {
 		X, err = G.Reshape(x, tensor.Shape{1, x.Shape()[0]})
+		if err != nil {
+			return nil, err
+		}
 	}
 	xshp := X.Shape()
 

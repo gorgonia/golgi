@@ -233,8 +233,7 @@ func (l *Embedding) Run(input G.Input) (err error) {
 	a := input.Node()
 	T := a.Value().(*tensor.Dense)
 
-	var vec interface{}
-	vec = T.Data()
+	vec := T.Data()
 
 	oh := l.oh.Value().(*tensor.Dense)
 
