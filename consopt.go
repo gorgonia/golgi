@@ -11,6 +11,9 @@ import (
 // ConsOpt is a construction option for layers
 type ConsOpt func(Layer) (Layer, error)
 
+// ReshapeFn defines a function to reshape a tensor
+type ReshapeFn func(s tensor.Shape) tensor.Shape
+
 type namesetter interface {
 	SetName(a string) error
 }
@@ -25,10 +28,6 @@ type actSetter interface {
 
 type dropoutConfiger interface {
 	SetDropout(prob float64) error
-}
-
-type maxpoolConfigurer interface {
-	SetMaxPool(kernelShape tensor.Shape, pad, stride []int) error
 }
 
 // WithName creates a layer that is named.
@@ -193,18 +192,6 @@ func WithProbability(prob float64) ConsOpt {
 			return layer, nil
 		}
 		return nil, errors.Errorf("WithProbability Unhandled Layer type: %T", layer)
-	}
-}
-
-// WithMaxPool is a ConsOpt for MaxPool
-func WithMaxPool(kernel tensor.Shape, pad, stride []int) ConsOpt {
-	return func(l Layer) (Layer, error) {
-		mpc, ok := l.(maxpoolConfigurer)
-		if !ok {
-			return nil, fmt.Errorf("%T doesn't implement SetMaxPool")
-		}
-
-		mpc.SetMaxPool(kernel, pad, stride)
 	}
 }
 

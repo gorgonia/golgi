@@ -18,8 +18,8 @@ func ConsConv(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	}
 
 	inshape := x.Shape()
-	if inshape.Dims() != 2 || inshape.Dims() == 0 {
-		return nil, fmt.Errorf("Expected shape is a matrix")
+	if inshape.Dims() > 4 || inshape.Dims() == 0 {
+		return nil, fmt.Errorf("Expected shape is either a vector or a matrix, got %v", inshape)
 	}
 
 	l := &Conv{
@@ -66,11 +66,6 @@ func (l *Conv) Init(xs ...*gorgonia.Node) (err error) {
 	return nil
 }
 
-type maxPoolConfig struct {
-	kernelShape tensor.Shape
-	pad, stride []int
-}
-
 // Conv represents a convolution layer
 type Conv struct {
 	w *gorgonia.Node
@@ -82,8 +77,7 @@ type Conv struct {
 	pad, stride, dilation []int
 
 	// optional config
-	dropout  *float64       // nil when shouldn't be applied
-	mpConfig *maxPoolConfig // nil when shouldn't be applied
+	dropout *float64 // nil when shouldn't be applied
 
 	act ActivationFunction
 
@@ -93,17 +87,6 @@ type Conv struct {
 // SetDropout sets the dropout of the layer
 func (l *Conv) SetDropout(d float64) error {
 	l.dropout = &d
-	return nil
-}
-
-// SetMaxPool sets a MaxPool layer for this layer in the form Conv->Activation->MaxPool(optional)->Dropout(optional)
-func (l *Conv) SetMaxPool(kernelShape tensor.Shape, pad, stride []int) error {
-	l.mpConfig = &maxPoolConfig{
-		kernelShape: kernelShape,
-		pad:         pad,
-		stride:      stride,
-	}
-
 	return nil
 }
 
@@ -148,13 +131,6 @@ func (l *Conv) Fwd(x gorgonia.Input) gorgonia.Result {
 		return gorgonia.Err(err)
 	}
 
-	if l.mpConfig != nil {
-		result, err = gorgonia.MaxPool2D(result, l.mpConfig.kernelShape, l.mpConfig.pad, l.mpConfig.stride)
-		if err != nil {
-			return gorgonia.Err(err)
-		}
-	}
-
 	if l.dropout != nil {
 		result, err = gorgonia.Dropout(result, *l.dropout)
 		if err != nil {
@@ -186,9 +162,8 @@ func (l *Conv) Describe() {
 }
 
 var (
-	_ sizeSetter        = &Conv{}
-	_ namesetter        = &Conv{}
-	_ actSetter         = &Conv{}
-	_ dropoutConfiger   = &Conv{}
-	_ maxpoolConfigurer = &Conv{}
+	_ sizeSetter      = &Conv{}
+	_ namesetter      = &Conv{}
+	_ actSetter       = &Conv{}
+	_ dropoutConfiger = &Conv{}
 )

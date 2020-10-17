@@ -1,15 +1,8 @@
 package golgi
 
-import (
-	"fmt"
+//. "gorgonia.org/golgi"
 
-	//. "gorgonia.org/golgi"
-	G "gorgonia.org/gorgonia"
-	"gorgonia.org/qol"
-	"gorgonia.org/tensor"
-	"gorgonia.org/tensor/native"
-)
-
+/*
 func ExampleEmbedding_1() {
 	const (
 		N        = 13
@@ -149,3 +142,4 @@ func ExampleEmbedding_2() {
 	// sel2: (17, 10, 50)
 
 }
+*/
