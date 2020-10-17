@@ -30,5 +30,5 @@ func RMS(yHat, y G.Input) (retVal *G.Node, err error) {
 		return nil, errors.Wrap(err, "mean((ŷ-y)²)")
 	}
 
-	return
+	return retVal, nil
 }

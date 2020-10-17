@@ -101,13 +101,11 @@ func WithSize(size ...int) ConsOpt {
 			l.dims = size[0]
 			return l, nil
 		case sizeSetter:
-			l.SetSize(size[0])
-			return layer, nil
+			return layer, l.SetSize(size[0])
 		case Pass:
 			return layer, nil
 		case *Conv:
-			l.SetSize(size...)
-			return layer, nil
+			return layer, l.SetSize(size...)
 		case *LSTM:
 			l.size = size[0]
 			return l, nil
@@ -141,8 +139,7 @@ func WithActivation(act ActivationFunction) ConsOpt {
 		case reshape:
 			return layer, nil
 		case actSetter:
-			l.SetActivationFn(act)
-			return layer, nil
+			return layer, l.SetActivationFn(act)
 		case Pass:
 			return layer, nil
 		}

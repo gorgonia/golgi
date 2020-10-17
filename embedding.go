@@ -114,7 +114,7 @@ func NewEmbedding(opts ...ConsOpt) *Embedding {
 		if err != nil {
 			panic(err)
 		}
-		retVal = l.(*Embedding)
+		retVal, _ = l.(*Embedding)
 	}
 	if retVal.w != nil && (retVal.inputIsOneHot && retVal.oh != nil) || retVal.inputIsOneHot {
 		retVal.initialized = true
@@ -150,7 +150,10 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 
 	if !l.inputIsOneHot {
 		oh = l.oh
-		l.Run(a.Node())
+		err := l.Run(a.Node())
+		if err != nil {
+			return G.Err(err)
+		}
 	}
 
 	retVal, err := G.Mul(oh, l.w)
@@ -231,11 +234,11 @@ func (l *Embedding) Run(input G.Input) (err error) {
 		return G.Err(errors.Wrapf(err, "Failed to run Embedding %v", l.name))
 	}
 	a := input.Node()
-	T := a.Value().(*tensor.Dense)
+	T, _ := a.Value().(*tensor.Dense)
 
 	vec := T.Data()
 
-	oh := l.oh.Value().(*tensor.Dense)
+	oh, _ := l.oh.Value().(*tensor.Dense)
 
 	var classes []qol.Class
 	switch v := vec.(type) {
@@ -262,9 +265,8 @@ func (l *Embedding) Run(input G.Input) (err error) {
 			classes[i] = qol.Class(v[i])
 		}
 	}
-	G.Let(l.oh, qol.UnsafeToOneHotMatrix(classes, uint(l.classes), oh))
 
-	return nil
+	return G.Let(l.oh, qol.UnsafeToOneHotMatrix(classes, uint(l.classes), oh))
 }
 
 // Runners returns the embedding itself
