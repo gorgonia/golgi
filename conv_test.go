@@ -22,9 +22,11 @@ func TestConvNet(t *testing.T) {
 	nn, err := ComposeSeq(
 		x,
 		L(ConsConv, WithName("layer 0"), WithSize(bs, 1), WithKernelShape(convKS)),
-		L(ConsMaxPool, WithName("layer 0"), WithKernelShape(mpKS), WithProbability(0.2)),
+		L(ConsMaxPool, WithName("layer 0"), WithKernelShape(mpKS)),
+		L(ConsDropout, WithName("layer 0"), WithProbability(0.2)),
 		L(ConsConv, WithName("layer 1"), WithSize(bs*2, bs), WithKernelShape(convKS)),
-		L(ConsMaxPool, WithName("layer 1"), WithKernelShape(mpKS), WithProbability(0.2)),
+		L(ConsMaxPool, WithName("layer 1"), WithKernelShape(mpKS)),
+		L(ConsDropout, WithName("layer 1"), WithProbability(0.2)),
 		L(ConsConv, WithName("layer 2"), WithSize(bs*4, bs*2), WithKernelShape(convKS)),
 		L(ConsMaxPool, WithName("layer 2"), WithKernelShape(mpKS)),
 		L(ConsReshape, WithName("layer 2"), ToShape(bs, (bs*4)*3*3)),

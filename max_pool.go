@@ -11,6 +11,10 @@ import (
 )
 
 // ConsMaxPool is a MaxPool construction function. It takes a gorgonia.Input that has a *gorgonia.Node.
+// Defaults:
+// 		kernel shape: (2,2)
+// 		pad: (0,0)
+//		stride: (2,2)
 func ConsMaxPool(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	x := in.Node()
 	if x == nil {

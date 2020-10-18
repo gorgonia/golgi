@@ -11,6 +11,12 @@ import (
 )
 
 // ConsConv is a Conv construction function. It takes a gorgonia.Input that has a *gorgonia.Node.
+// Defaults:
+//		activation function: Rectify
+// 		kernel shape: (5,5)
+// 		pad: (1,1)
+//		stride: (1,1)
+//		dilation: (1,1)
 func ConsConv(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	x := in.Node()
 	if x == nil {

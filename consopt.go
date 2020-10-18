@@ -101,11 +101,19 @@ func WithSize(size ...int) ConsOpt {
 			l.dims = size[0]
 			return l, nil
 		case sizeSetter:
-			return layer, l.SetSize(size[0])
+			if err := l.SetSize(size[0]); err != nil {
+				return nil, err
+			}
+
+			return layer, nil
 		case Pass:
 			return layer, nil
 		case *Conv:
-			return layer, l.SetSize(size...)
+			if err := l.SetSize(size...); err != nil {
+				return nil, err
+			}
+
+			return layer, nil
 		case *LSTM:
 			l.size = size[0]
 			return l, nil
@@ -147,6 +155,7 @@ func WithActivation(act ActivationFunction) ConsOpt {
 	}
 }
 
+// Of sets the type of the internal tensor
 func Of(dt tensor.Dtype) ConsOpt {
 	return func(layer Layer) (Layer, error) {
 		switch l := layer.(type) {
@@ -237,7 +246,7 @@ func WithWeights(w *G.Node) ConsOpt {
 	}
 }
 
-// WithKernelShape sets the kernel shape of the layer
+// WithKernelShape sets the kernel shape for convolution layers (Conv, MaxPool)
 func WithKernelShape(s tensor.Shape) ConsOpt {
 	return func(l Layer) (Layer, error) {
 		switch c := l.(type) {
@@ -255,11 +264,15 @@ func WithKernelShape(s tensor.Shape) ConsOpt {
 	}
 }
 
-// WithPad sets the pad of the layer
+// WithPad sets the pad  for convolution layers (Conv, MaxPool)
 func WithPad(p []int) ConsOpt {
 	return func(l Layer) (Layer, error) {
 		switch c := l.(type) {
 		case *Conv:
+			c.pad = p
+
+			return c, nil
+		case *MaxPool:
 			c.pad = p
 
 			return c, nil
@@ -269,11 +282,15 @@ func WithPad(p []int) ConsOpt {
 	}
 }
 
-// WithStride sets the stride of the layer
+// WithStride sets the stride for convolution layers (Conv, MaxPool)
 func WithStride(s []int) ConsOpt {
 	return func(l Layer) (Layer, error) {
 		switch c := l.(type) {
 		case *Conv:
+			c.stride = s
+
+			return c, nil
+		case *MaxPool:
 			c.stride = s
 
 			return c, nil
@@ -283,7 +300,7 @@ func WithStride(s []int) ConsOpt {
 	}
 }
 
-// WithDilation sets the dilation of the layer
+// WithDilation sets the dilation for convolution layers
 func WithDilation(s []int) ConsOpt {
 	return func(l Layer) (Layer, error) {
 		switch c := l.(type) {
