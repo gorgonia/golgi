@@ -88,6 +88,15 @@ func (l *FC) Fwd(a G.Input) G.Result {
 	}
 
 	x := a.Node()
+
+	// lazy init
+	if !l.initialized {
+		if err := l.Init(x); err != nil {
+			return G.Err(errors.Wrapf(err, "Lazy initialization of FC %v failed", l.name))
+		}
+
+	}
+
 	var xw, xwb *G.Node
 	var err error
 	if xw, err = G.Mul(x, l.w); err != nil {
