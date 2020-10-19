@@ -55,12 +55,12 @@ func ConsLSTM(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 		)
 
 		if o, err = opt(l); err != nil {
-			return
+			return nil, err
 		}
 
 		if l, ok = o.(*LSTM); !ok {
 			err = errors.Errorf("Construction Option returned a non LSTM. Got %T instead", o)
-			return
+			return nil, err
 		}
 	}
 
@@ -69,7 +69,8 @@ func ConsLSTM(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	}
 
 	retVal = l
-	return
+
+	return retVal, nil
 }
 
 // Model will return the gorgonia.Nodes associated with this LSTM

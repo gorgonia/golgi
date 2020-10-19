@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/chewxy/hm"
-	"gorgonia.org/gorgonia"
 	G "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -56,7 +55,7 @@ func (l reshape) Fwd(x G.Input) G.Result {
 	if to.Eq(n.Shape()) {
 		return n
 	}
-	return G.LiftResult(gorgonia.Reshape(x.Node(), tensor.Shape(l)))
+	return G.LiftResult(G.Reshape(x.Node(), tensor.Shape(l)))
 }
 func (l reshape) Type() hm.Type       { return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('a')) }
 func (l reshape) Shape() tensor.Shape { return tensor.Shape(l) }
@@ -82,7 +81,7 @@ func (l dropout) Fwd(x G.Input) G.Result {
 	if err := G.CheckOne(x); err != nil {
 		return G.Err(err)
 	}
-	return G.LiftResult(gorgonia.Dropout(x.Node(), float64(l)))
+	return G.LiftResult(G.Dropout(x.Node(), float64(l)))
 }
 func (l dropout) Type() hm.Type       { return hm.NewFnType(hm.TypeVariable('a'), hm.TypeVariable('a')) }
 func (l dropout) Shape() tensor.Shape { panic("not implemented") }

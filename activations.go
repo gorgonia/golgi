@@ -22,6 +22,7 @@ const (
 	LeakyReLU
 	ELU
 	Cube
+	SoftMax
 )
 
 var maxact = Cube
@@ -35,9 +36,10 @@ var internalmaps = map[Activation]ActivationFunction{
 	LeakyReLU: nil,    // TODO
 	ELU:       nil,    //TODO
 	Cube:      G.Cube,
+	SoftMax:   SoftMaxFn,
 }
 
-// ActivationMaps is a map from Activation to ActivationFunction. The mapping function is finite. If an invalid Activation is passed in, nil will be returned.
+// ActivationMap is a map from Activation to ActivationFunction. The mapping function is finite. If an invalid Activation is passed in, nil will be returned.
 func ActivationMap(a Activation) ActivationFunction { return internalmaps[a] }
 
 var elmul = G.Lift2(G.HadamardProd)
@@ -77,4 +79,9 @@ func GeLUFn(a *G.Node) (*G.Node, error) {
 		),
 	)
 	return retVal.Node(), retVal.Err()
+}
+
+// SoftMaxFn implements softmax without axis
+func SoftMaxFn(a *G.Node) (*G.Node, error) {
+	return G.SoftMax(a)
 }

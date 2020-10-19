@@ -65,7 +65,7 @@ func NewFC(opts ...ConsOpt) *FC {
 		if err != nil {
 			panic(err)
 		}
-		retVal = l.(*FC)
+		retVal, _ = l.(*FC)
 	}
 	if retVal.w != nil || retVal.b != nil {
 		retVal.initialized = true

@@ -69,7 +69,7 @@ func Example_extension() {
 	if err != nil {
 		fmt.Printf("Uh oh. Error happened when constructing *myLayer: %v\n", err)
 	}
-	l := layer.(*myLayer)
+	l, _ := layer.(*myLayer)
 	fmt.Printf("Name:  %q\n", l.Name())
 	fmt.Printf("Model: %v\n", l.Model())
 	fmt.Printf("BE CAREFUL\n======\nl.size is %v. But the models shapes are correct as follows:\n", l.size)
