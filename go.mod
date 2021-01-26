@@ -2,7 +2,7 @@ module gorgonia.org/golgi
 
 go 1.15
 
-replace gorgonia.org/gorgonia => ../gorgonia
+//replace gorgonia.org/gorgonia => ../gorgonia
 
 require (
 	github.com/chewxy/hm v1.0.0
