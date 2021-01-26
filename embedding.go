@@ -7,6 +7,20 @@ import (
 	"gorgonia.org/tensor"
 )
 
+func AsRunner() ConsOpt {
+	return func(layer Layer) (Layer, error) {
+		switch l := layer.(type) {
+		case *Embedding:
+			l.selectFn = runnerindices
+			return layer, nil
+		case Pass:
+			return layer, nil
+		default:
+			return nil, errors.Errorf("AsRunner is a construction optin that only supports embeddings so far. %T is not supported.", layer)
+		}
+	}
+}
+
 // WithClasses is a construction option that specifies how many classes are there in the embedding layer.
 func WithClasses(classes int) ConsOpt {
 	return func(layer Layer) (Layer, error) {
@@ -27,7 +41,7 @@ func WithOneHotInput() ConsOpt {
 	return func(layer Layer) (Layer, error) {
 		switch l := layer.(type) {
 		case *Embedding:
-			l.inputIsOneHot = true
+			l.selectFn = onehotindices
 			return layer, nil
 		case Pass:
 			return layer, nil
@@ -36,6 +50,14 @@ func WithOneHotInput() ConsOpt {
 		}
 	}
 }
+
+type selectionmethod int
+
+const (
+	byindices selectionmethod = iota
+	onehotindices
+	runnerindices
+)
 
 // Embedding is a layer that represents an embedding layer.
 //
@@ -80,8 +102,8 @@ type Embedding struct {
 
 	// config
 
-	// inputIsOneHot is used when the expected input is a onehot vector.
-	inputIsOneHot bool
+	//selectFn is the kind of selection function used
+	selectFn selectionmethod
 
 	// batch size
 	bs int
@@ -116,7 +138,9 @@ func NewEmbedding(opts ...ConsOpt) *Embedding {
 		}
 		retVal, _ = l.(*Embedding)
 	}
-	if retVal.w != nil && (retVal.inputIsOneHot && retVal.oh != nil) || retVal.inputIsOneHot {
+	if retVal.w != nil &&
+		(retVal.selectFn != runnerindices ||
+			retVal.selectFn == runnerindices && retVal.oh != nil) {
 		retVal.initialized = true
 	}
 	if retVal.bs < 1 {
@@ -132,6 +156,7 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 	if err := G.CheckOne(a); err != nil {
 		return G.Err(errors.Wrapf(err, "Fwd of Embedding %v", l.name))
 	}
+
 	if !l.initialized {
 		if err := l.Init(a.Node()); err != nil {
 			return G.Err(errors.Wrapf(err, "lazy initialization of %v failed", l.name))
@@ -148,34 +173,43 @@ func (l *Embedding) Fwd(a G.Input) G.Result {
 
 	oh := a.Node()
 
-	if !l.inputIsOneHot {
+	var useOneHot bool
+	switch l.selectFn {
+	case onehotindices:
+		useOneHot = true
+	case runnerindices:
 		oh = l.oh
 		err := l.Run(a.Node())
 		if err != nil {
 			return G.Err(err)
 		}
+		useOneHot = true
+	default:
 	}
 
-	retVal, err := G.Mul(oh, l.w)
-	if err != nil {
-		return G.Err(errors.Wrapf(err, "Fwd of Embedding %v - Mul error", l.name))
-	}
-
-	if !l.inputIsOneHot {
-		switch shp.Dims() {
-		case 2:
-			// reshape result to (bs, dims)
-			retVal, err = G.Reshape(retVal, tensor.Shape{shp[0], shp[1], l.dims})
-			if err != nil {
-				return G.Err(errors.Wrapf(err, "Failed to reshape retVal  to (%v, %v)", l.bs, l.dims))
-			}
-		case 1:
-			// NOOP
-		case 0:
-			// NOOP
+	if useOneHot {
+		retVal, err := G.Mul(oh, l.w)
+		if err != nil {
+			return G.Err(errors.Wrapf(err, "Fwd of Embedding %v - Mul error", l.name))
 		}
+		if l.selectFn == runnerindices {
+			switch shp.Dims() {
+			case 2:
+				// reshape result to (bs, dims)
+				retVal, err = G.Reshape(retVal, tensor.Shape{shp[0], shp[1], l.dims})
+				if err != nil {
+					return G.Err(errors.Wrapf(err, "Failed to reshape retVal  to (%v, %v)", l.bs, l.dims))
+				}
+			case 1:
+				// NOOP
+			case 0:
+				// NOOP
+			}
+		}
+		return retVal
 	}
-	return retVal
+
+	return G.LiftResult(G.ByIndices(l.w, a.Node(), 0))
 }
 
 func (l *Embedding) Name() string { return l.name }
@@ -194,7 +228,7 @@ func (l *Embedding) Init(xs ...*G.Node) (err error) {
 		l.w = G.NewMatrix(g, of, G.WithShape(l.classes, l.dims), G.WithInit(G.GlorotN(1)), G.WithName(l.name))
 	}
 
-	if !l.inputIsOneHot {
+	if l.selectFn == runnerindices {
 		// we need to construct the one-hot matrix as well
 		l.oh = G.NewMatrix(g, of, G.WithShape(l.bs, l.classes), G.WithInit(G.Zeroes()), G.WithName(l.name+"dummy-1hot"))
 	}
@@ -230,8 +264,11 @@ func (l *Embedding) Graph() *G.ExprGraph { return l.w.Graph() }
 
 // Run is a function that sets the internal one hot vector/matrix
 func (l *Embedding) Run(input G.Input) (err error) {
+	if l.selectFn != runnerindices {
+		return errors.Errorf("Cannot call Run on Embedding. The selection function is not a runnerindices.")
+	}
 	if err := G.CheckOne(input); err != nil {
-		return G.Err(errors.Wrapf(err, "Failed to run Embedding %v", l.name))
+		return errors.Wrapf(err, "Failed to run Embedding %v", l.name)
 	}
 	a := input.Node()
 	T, _ := a.Value().(*tensor.Dense)

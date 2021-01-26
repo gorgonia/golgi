@@ -126,6 +126,28 @@ func (l *layerNorm) Fwd(a G.Input) G.Result {
 	return l.FC.Fwd(newX)
 }
 
+func MakeLayerNorm(opts ...ConsOpt) Layer {
+	l := &layerNorm{
+		eps: 1e-5,
+	}
+	for _, opt := range opts {
+		var o Layer
+		var err error
+		if o, err = opt(l); err != nil {
+			panic(err)
+		}
+		l = o.(*layerNorm) // panics if not layernorm
+	}
+	// misc settings that has to be reset in case anything else gets set
+	l.batched = true
+	l.act = nil
+	l.nobias = false
+	if l.FC.w != nil || l.FC.b != nil {
+		l.FC.initialized = true
+	}
+	return l
+}
+
 func (l *layerNorm) Init(xs ...*G.Node) (err error) {
 	x := xs[0]
 	// prep
@@ -135,7 +157,7 @@ func (l *layerNorm) Init(xs ...*G.Node) (err error) {
 	if x.IsVec() {
 		X, err = G.Reshape(x, tensor.Shape{1, x.Shape()[0]})
 		if err != nil {
-			return nil, err
+			return errors.Wrapf(err, "While initializing layerNorm")
 		}
 	}
 	xshp := X.Shape()
