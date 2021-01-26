@@ -3,12 +3,13 @@ package golgi
 import (
 	"fmt"
 
-	//. "gorgonia.org/golgi"
 	G "gorgonia.org/gorgonia"
 	"gorgonia.org/qol"
 	"gorgonia.org/tensor"
 	"gorgonia.org/tensor/native"
 )
+
+//. "gorgonia.org/golgi"
 
 func ExampleEmbedding_1() {
 	const (
@@ -24,7 +25,7 @@ func ExampleEmbedding_1() {
 	sel1 := emb1.Fwd(x)
 	sel2 := emb2.Fwd(x)
 
-	classes := x.Value().Data().([]qol.Class)
+	classes, _ := x.Value().Data().([]qol.Class)
 	classes[1] = 1
 
 	// Run() is required to be run everytime the VM is run.
@@ -93,7 +94,7 @@ func ExampleEmbedding_2() {
 	sel1 := emb1.Fwd(x)
 	sel2 := emb2.Fwd(x)
 
-	classes := x.Value().Data().([]qol.Class)
+	classes, _ := x.Value().Data().([]qol.Class)
 	classes[1] = 1
 
 	// Run() is required to be run everytime the VM is run.

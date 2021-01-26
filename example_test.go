@@ -28,6 +28,7 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
+
 	out := nn.Fwd(x)
 	if err = gorgonia.CheckOne(out); err != nil {
 		panic(err)
@@ -38,6 +39,7 @@ func Example() {
 	if _, err = gorgonia.Grad(cost, model...); err != nil {
 		panic(err)
 	}
+
 	m := gorgonia.NewTapeMachine(g)
 	if err := m.RunAll(); err != nil {
 		panic(err)

@@ -14,7 +14,8 @@ func makeLSTMIO(x, prevHidden, prevCell *G.Node, err error) (l lstmIO) {
 	l.prevHidden = prevHidden
 	l.prevCell = prevCell
 	l.err = err
-	return
+
+	return l
 }
 
 // lstmIO represents an LSTM input/output value

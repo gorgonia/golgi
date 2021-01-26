@@ -76,7 +76,7 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 		return G.Err(errors.Wrapf(err, "Forward of Composition %v (a)", l.Name()))
 	}
 	if t, ok := x.(tag); ok {
-		l.a = t.a.(Layer)
+		l.a, _ = t.a.(Layer)
 		x = t.b
 	}
 
@@ -87,7 +87,7 @@ func (l *Composition) Fwd(a G.Input) (output G.Result) {
 	}
 	switch yt := y.(type) {
 	case tag:
-		l.b = yt.a.(Layer)
+		l.b, _ = yt.a.(Layer)
 		retVal, ok := yt.b.(G.Result)
 		if !ok {
 			return G.Err(errors.Errorf("Error while forwarding Composition where layer is returned. Expected the result of a application to be a Result. Got %v of %T instead", yt.b, yt.b))

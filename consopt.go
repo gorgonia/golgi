@@ -1,6 +1,8 @@
 package golgi
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	G "gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -8,6 +10,9 @@ import (
 
 // ConsOpt is a construction option for layers
 type ConsOpt func(Layer) (Layer, error)
+
+// ReshapeFn defines a function to reshape a tensor
+type ReshapeFn func(s tensor.Shape) tensor.Shape
 
 type namesetter interface {
 	SetName(a string) error
@@ -41,7 +46,6 @@ func WithName(name string) ConsOpt {
 			l.name = name
 			return layer, nil
 		case *LSTM:
-		case *Conv:
 		case unnameable:
 			return layer, nil
 		case namesetter:
@@ -97,9 +101,18 @@ func WithSize(size ...int) ConsOpt {
 			l.dims = size[0]
 			return l, nil
 		case sizeSetter:
-			l.SetSize(size[0])
+			if err := l.SetSize(size[0]); err != nil {
+				return nil, err
+			}
+
 			return layer, nil
 		case Pass:
+			return layer, nil
+		case *Conv:
+			if err := l.SetSize(size...); err != nil {
+				return nil, err
+			}
+
 			return layer, nil
 		case *LSTM:
 			l.size = size[0]
@@ -134,8 +147,7 @@ func WithActivation(act ActivationFunction) ConsOpt {
 		case reshape:
 			return layer, nil
 		case actSetter:
-			l.SetActivationFn(act)
-			return layer, nil
+			return layer, l.SetActivationFn(act)
 		case Pass:
 			return layer, nil
 		}
@@ -143,6 +155,7 @@ func WithActivation(act ActivationFunction) ConsOpt {
 	}
 }
 
+// Of sets the type of the internal tensor
 func Of(dt tensor.Dtype) ConsOpt {
 	return func(layer Layer) (Layer, error) {
 		switch l := layer.(type) {
@@ -230,5 +243,73 @@ func WithWeights(w *G.Node) ConsOpt {
 			return nil, errors.Errorf("WithWeights does not handle layer of type %T", layer)
 		}
 		return layer, nil
+	}
+}
+
+// WithKernelShape sets the kernel shape for convolution layers (Conv, MaxPool)
+func WithKernelShape(s tensor.Shape) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.kernelShape = s
+
+			return c, nil
+		case *MaxPool:
+			c.kernelShape = s
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting kernel shape is not supported by this layer: %T", l)
+	}
+}
+
+// WithPad sets the pad  for convolution layers (Conv, MaxPool)
+func WithPad(p []int) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.pad = p
+
+			return c, nil
+		case *MaxPool:
+			c.pad = p
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting pad is not supported by this layer")
+	}
+}
+
+// WithStride sets the stride for convolution layers (Conv, MaxPool)
+func WithStride(s []int) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.stride = s
+
+			return c, nil
+		case *MaxPool:
+			c.stride = s
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting stride is not supported by this layer")
+	}
+}
+
+// WithDilation sets the dilation for convolution layers
+func WithDilation(s []int) ConsOpt {
+	return func(l Layer) (Layer, error) {
+		switch c := l.(type) {
+		case *Conv:
+			c.dilation = s
+
+			return c, nil
+		}
+
+		return nil, fmt.Errorf("Setting dilation is not supported by this layer")
 	}
 }
