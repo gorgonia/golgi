@@ -30,6 +30,10 @@ type dropoutConfiger interface {
 	SetDropout(prob float64) error
 }
 
+type computeFLOPsSetter interface {
+	SetComputeFLOPs(toCompute bool) error
+}
+
 // WithName creates a layer that is named.
 //
 // If the layer is unnameable (i.e. trivial layers), then there is no effect.
@@ -311,5 +315,25 @@ func WithDilation(s []int) ConsOpt {
 		}
 
 		return nil, fmt.Errorf("Setting dilation is not supported by this layer")
+	}
+}
+
+// ComputeFLOPs tells the layer to also compute FLOPS as the input is forwarded through it.
+func ComputeFLOPs(toCompute bool) ConsOpt {
+	return func(layer Layer) (Layer, error) {
+		switch l := layer.(type) {
+		case *Embedding:
+			l.computeFLOPs = toCompute
+			return l, nil
+		case *Conv:
+			l.computeFLOPs = toCompute
+			return l, nil
+		case computeFLOPsSetter:
+			err := l.SetComputeFLOPs(toCompute)
+			return layer, err
+		case Pass:
+			return layer, nil
+		}
+		return nil, fmt.Errorf("Cannot set ComputeFLOPs - layer %T doesn't support this option.", layer)
 	}
 }

@@ -35,10 +35,12 @@ type FC struct {
 	name string
 
 	// config
-	size        int
-	batched     bool
-	nobias      bool
-	initialized bool
+	size         int
+	flops        int
+	batched      bool
+	nobias       bool
+	initialized  bool
+	computeFLOPs bool
 }
 
 // MakeFC creates a FC with the given parameters
@@ -167,6 +169,8 @@ func (l *FC) ByName(name string) Term {
 
 func (l *FC) Graph() *G.ExprGraph { return l.w.Graph() }
 
+func (l *FC) FLOPs() int { return l.flops }
+
 // SetName will set the name of a fully connected layer
 func (l *FC) SetName(a string) error { l.name = a; return nil }
 
@@ -174,10 +178,10 @@ func (l *FC) SetName(a string) error { l.name = a; return nil }
 func (l *FC) SetSize(a int) error { l.size = a; return nil }
 
 // SetAct will set an activiation function of a fully connected layer
-func (l *FC) SetAct(act ActivationFunction) error {
-	l.act = act
-	return nil
-}
+func (l *FC) SetAct(act ActivationFunction) error { l.act = act; return nil }
+
+// SetComputeFLOPs will set the `computeFLOPs` param. If true then the FLOPs will be computed when the input is forwarded.
+func (l *FC) SetComputeFLOPs(toCompute bool) error { l.computeFLOPs = toCompute; return nil }
 
 // Init will initialize the fully connected layer
 func (l *FC) Init(xs ...*G.Node) (err error) {
@@ -190,6 +194,7 @@ func (l *FC) Init(xs ...*G.Node) (err error) {
 			return err
 		}
 	}
+
 	xshp := X.Shape()
 	l.w = G.NewMatrix(g, of, G.WithShape(xshp[1], l.size), G.WithInit(G.GlorotU(1)), G.WithName(l.name+"_W"))
 	switch {
@@ -199,6 +204,10 @@ func (l *FC) Init(xs ...*G.Node) (err error) {
 		l.b = G.NewMatrix(g, of, G.WithShape(xshp[0], l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
 	}
 	l.initialized = true
+
+	if l.computeFLOPs {
+		l.flops = l.doComputeFLOPs(x.Shape())
+	}
 	return nil
 }
 
@@ -233,4 +242,15 @@ func ConsFC(in G.Input, opts ...ConsOpt) (retVal Layer, err error) {
 	}
 
 	return l, nil
+}
+
+func (l *FC) doComputeFLOPs(input tensor.Shape) int {
+	outer := input[0]
+	inner := input[1]
+	retInner := l.size
+	matMul := (2*inner - 1) * outer * retInner // number of ops in matmul of (m, n) × (n, k) = (2n-1)mk
+	if l.nobias {
+		return matMul
+	}
+	return matMul + (outer * retInner) // bias = the final shape's size
 }

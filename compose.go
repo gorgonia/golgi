@@ -171,3 +171,13 @@ func (l *Composition) Runners() []Runner {
 	}
 	return retVal
 }
+
+func (l *Composition) FLOPs() (retVal int) {
+	if fa, ok := l.a.(flopser); ok {
+		retVal += fa.FLOPs()
+	}
+	if fb, ok := l.b.(flopser); ok {
+		retVal += fb.FLOPs()
+	}
+	return
+}
