@@ -122,6 +122,12 @@ type Embedding struct {
 
 	// of
 	of tensor.Dtype
+
+	// whether to compute FLOPs
+	computeFLOPs bool
+
+	// computed FLOPs
+	flops int
 }
 
 // NewEmbedding creates a new embedding layer.

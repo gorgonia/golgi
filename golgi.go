@@ -61,6 +61,10 @@ type Layer interface {
 	Describe() // some protobuf things TODO
 }
 
+type flopser interface {
+	FLOPs() int
+}
+
 // Redefine redefines a layer with the given construction options. This is useful for re-initializing layers
 func Redefine(l Layer, opts ...ConsOpt) (retVal Layer, err error) {
 	for _, opt := range opts {

@@ -15,6 +15,9 @@ type layerNorm struct {
 	FC
 	epsNode *G.Node
 	eps     float64
+
+	flops        int
+	computeFLOPs bool
 }
 
 // There is no Model() method. When Model() is called, it simply calls the FC's Model()
@@ -173,5 +176,26 @@ func (l *layerNorm) Init(xs ...*G.Node) (err error) {
 	l.w = G.NewMatrix(g, of, G.WithShape(xshp[1], l.size), G.WithInit(G.Ones()), G.WithName(l.name+"_W"))
 	l.b = G.NewMatrix(g, of, G.WithShape(1, l.size), G.WithInit(G.Zeroes()), G.WithName(l.name+"_B"))
 	l.initialized = true
+	if l.computeFLOPs {
+		l.flops = l.doComputeFLOPs(X.Shape())
+	}
+
 	return nil
+}
+
+func (l *layerNorm) SetComputeFLOPs(toCompute bool) error {
+	l.computeFLOPs = toCompute
+	l.FC.computeFLOPs = toCompute
+	return nil
+}
+
+func (l *layerNorm) doComputeFLOPs(input tensor.Shape) int {
+	mean := input.TotalSize()            // x-μ
+	meanSq := mean * 2                   // (x-μ)^2
+	variance := meanSq + mean            // (x-μ)^2 / N
+	variancePerturbed := variance + mean // perturbation
+	sqrt := variancePerturbed + mean     // sqrt
+	div := sqrt + mean
+	fc := l.FC.doComputeFLOPs(input)
+	return div + fc
 }

@@ -26,25 +26,9 @@ func ConsMaxPool(in gorgonia.Input, opts ...ConsOpt) (retVal Layer, err error) {
 		return nil, fmt.Errorf("Expected shape is a matrix")
 	}
 
-	l := &MaxPool{
-		kernelShape: tensor.Shape{2, 2},
-		pad:         []int{0, 0},
-		stride:      []int{2, 2},
-	}
-
-	for _, opt := range opts {
-		var (
-			o  Layer
-			ok bool
-		)
-
-		if o, err = opt(l); err != nil {
-			return nil, err
-		}
-
-		if l, ok = o.(*MaxPool); !ok {
-			return nil, fmt.Errorf("Construction Option returned a non MaxPool. Got %T instead", o)
-		}
+	l, err := NewMaxPool(opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	// prep
@@ -73,7 +57,35 @@ type MaxPool struct {
 	// optional config
 	dropout *float64 // nil when shouldn't be applied
 
-	initialized bool
+	initialized  bool
+	computeFLOPs bool
+
+	flops int
+}
+
+func NewMaxPool(opts ...ConsOpt) (*MaxPool, error) {
+	l := &MaxPool{
+		kernelShape: tensor.Shape{2, 2},
+		pad:         []int{0, 0},
+		stride:      []int{2, 2},
+	}
+
+	for _, opt := range opts {
+		var (
+			o   Layer
+			ok  bool
+			err error
+		)
+
+		if o, err = opt(l); err != nil {
+			return nil, err
+		}
+
+		if l, ok = o.(*MaxPool); !ok {
+			return nil, fmt.Errorf("Construction Option returned a non MaxPool. Got %T instead", o)
+		}
+	}
+	return l, nil
 }
 
 // SetSize sets the size of the layer
@@ -135,6 +147,22 @@ func (l *MaxPool) Name() string {
 // Describe will describe a MaxPoololution layer
 func (l *MaxPool) Describe() {
 	panic("not implemented")
+}
+
+func (l *MaxPool) SetComputeFLOPs(toCompute bool) error {
+	l.computeFLOPs = toCompute
+	return nil
+}
+
+func (l *MaxPool) FLOPs() int { return l.flops }
+
+func (l *MaxPool) doComputeFLOPs(input tensor.Shape) int {
+	copyOps := input.TotalSize()
+
+	if l.dropout != nil {
+		return 2 * copyOps // dropout is an elementwise mul
+	}
+	return copyOps
 }
 
 var (
